@@ -1,0 +1,790 @@
+{
+  "categories": [
+    "Welding Electrodes",
+    "TIG Filler Rods",
+    "MIG / MAG Welding Wire",
+    "Primers"
+  ],
+  "subcategories": {
+    "Welding Electrodes": [
+      "E6013 / MS",
+      "7018 LH",
+      "Metal Cut",
+      "Cast Iron",
+      "Stainless Steel"
+    ]
+  },
+  "brands": [
+    "RASI",
+    "SUPERON",
+    "ESAB",
+    "ADOR",
+    "ORBIT",
+    "SUPER 6"
+  ],
+  "products": [
+    {
+      "id": "rasi-e6013",
+      "category": "Welding Electrodes",
+      "subcategory": "E6013 / MS",
+      "name": "Rasi E6013 / MS Electrodes",
+      "brand": "RASI",
+      "grade": "E6013",
+      "sizes": [
+        "2.00 mm",
+        "2.50 mm",
+        "3.15 mm",
+        "4.00 mm",
+        "5.00 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "General fabrication",
+        "Mild steel welding",
+        "Structural welding",
+        "Repair and maintenance work"
+      ]
+    },
+    {
+      "id": "orbit-e6013",
+      "category": "Welding Electrodes",
+      "subcategory": "E6013 / MS",
+      "name": "Orbit E6013 / MS Electrodes",
+      "brand": "ORBIT",
+      "grade": "E6013",
+      "sizes": [
+        "3.15 mm",
+        "4.00 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "General fabrication",
+        "Mild steel welding",
+        "Structural welding",
+        "Repair and maintenance work"
+      ]
+    },
+    {
+      "id": "super6-e6013",
+      "category": "Welding Electrodes",
+      "subcategory": "E6013 / MS",
+      "name": "Super 6 E6013 / MS Electrodes",
+      "brand": "SUPER 6",
+      "grade": "E6013",
+      "sizes": [
+        "3.15 mm",
+        "4.00 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "General fabrication",
+        "Mild steel welding",
+        "Structural welding",
+        "Repair and maintenance work"
+      ]
+    },
+    {
+      "id": "ador-kingbond-e6013",
+      "category": "Welding Electrodes",
+      "subcategory": "E6013 / MS",
+      "name": "Ador Kingbond E6013 / MS Electrodes",
+      "brand": "ADOR kingbond",
+      "grade": "E6013",
+      "sizes": [
+        "3.15 mm",
+        "4.00 mm",
+        "5.00 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "General fabrication",
+        "Mild steel welding",
+        "Structural welding",
+        "Repair and maintenance work"
+      ]
+    },
+    {
+      "id": "esab-ferroamb-e6013",
+      "category": "Welding Electrodes",
+      "subcategory": "E6013 / MS",
+      "name": "ESAB Ferroamb E6013 / MS Electrodes",
+      "brand": "ESAB Ferroamb",
+      "grade": "E6013",
+      "sizes": [
+        "2.50 mm",
+        "3.15 mm",
+        "4.00 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "General fabrication",
+        "Mild steel welding",
+        "Structural welding",
+        "Repair and maintenance work"
+      ]
+    },
+    {
+      "id": "rasi-7018-lh",
+      "category": "Welding Electrodes",
+      "subcategory": "7018 LH",
+      "name": "Rasi 7018 LH Electrodes",
+      "brand": "RASI ",
+      "grade": "7018 LH",
+      "sizes": [
+        "2.50 mm",
+        "4.00 mm",
+        "5.00 mm",
+        "3.15 x 450 mm",
+        "3.15 x 350 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "Heavy fabrication",
+        "Pressure vessels",
+        "Structural steel",
+        "High-strength welding"
+      ]
+    },
+    {
+      "id": "ador-superbase-7018-lh",
+      "category": "Welding Electrodes",
+      "subcategory": "7018 LH",
+      "name": "Ador Supabase 7018 LH Electrodes",
+      "brand": "ADOR supabase",
+      "grade": "7018 LH",
+      "sizes": [
+        "2.50 mm",
+        "3.15 mm",
+        "4.00 mm",
+        "5.00 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "Heavy fabrication",
+        "Pressure vessels",
+        "Structural steel",
+        "High-strength welding"
+      ]
+    },
+    {
+      "id": "esab-xpert-7018-lh",
+      "category": "Welding Electrodes",
+      "subcategory": "7018 LH",
+      "name": "ESAB Xpert 7018 LH Electrodes",
+      "brand": "ESAB xpert",
+      "grade": "7018 LH",
+      "sizes": [
+        "2.50 mm",
+        "3.15 mm",
+        "4.00 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "Heavy fabrication",
+        "Pressure vessels",
+        "Structural steel",
+        "High-strength welding"
+      ]
+    },
+    {
+      "id": "rasi-metal-cut",
+      "category": "Welding Electrodes",
+      "subcategory": "Metal Cut",
+      "name": "Rasi Metal Cut Electrodes",
+      "brand": "RASI",
+      "grade": null,
+      "sizes": [
+        "3.15 x 450 mm",
+        "4.00 x 450 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "Metal cutting",
+        "Gouging",
+        "Piercing"
+      ]
+    },
+    {
+      "id": "rasi-cast-iron",
+      "category": "Welding Electrodes",
+      "subcategory": "Cast Iron",
+      "name": "Rasi Cast Iron Electrodes",
+      "brand": "RASI (CINM / CIFN)",
+      "grade": [
+        "CINM",
+        "CIFN"
+      ],
+      "sizes": [
+        "3.15 x 350 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "Cast iron repair",
+        "Maintenance welding",
+        "Machinery repair"
+      ]
+    },
+    {
+      "id": "superon-cast-iron-ac55",
+      "category": "Welding Electrodes",
+      "subcategory": "Cast Iron",
+      "name": "Superon Cast Iron Electrodes",
+      "brand": "SUPERON(AC55)",
+      "grade": "AC55",
+      "sizes": [
+        "3.15 x 350 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "Cast iron repair",
+        "Maintenance welding",
+        "Machinery repair"
+      ]
+    },
+    {
+      "id": "rasi-ss-308",
+      "category": "Welding Electrodes",
+      "subcategory": "Stainless Steel",
+      "name": "Rasi Stainless Steel Electrodes",
+      "brand": "RASI",
+      "grade": "308",
+      "sizes": [
+        "2.50 mm",
+        "3.15 mm",
+        "4.00 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "Stainless steel fabrication",
+        "Food processing equipment",
+        "Chemical industry",
+        "Pharmaceutical industry"
+      ]
+    },
+    {
+      "id": "rasi-ss-309",
+      "category": "Welding Electrodes",
+      "subcategory": "Stainless Steel",
+      "name": "Rasi Stainless Steel Electrodes",
+      "brand": "RASI",
+      "grade": "309",
+      "sizes": [
+        "2.50 mm",
+        "3.15 mm",
+        "4.00 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "Dissimilar metal welding",
+        "Stainless steel fabrication"
+      ]
+    },
+    {
+      "id": "superon-ss-308",
+      "category": "Welding Electrodes",
+      "subcategory": "Stainless Steel",
+      "name": "Superon Stainless Steel Electrodes",
+      "brand": "SUPERON",
+      "grade": "308",
+      "sizes": [
+        "2.00 mm",
+        "2.50 mm",
+        "3.15 mm",
+        "4.00 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "Stainless steel fabrication",
+        "Food processing equipment",
+        "Chemical industry",
+        "Pharmaceutical industry"
+      ]
+    },
+    {
+      "id": "superon-ss-309",
+      "category": "Welding Electrodes",
+      "subcategory": "Stainless Steel",
+      "name": "Superon Stainless Steel Electrodes",
+      "brand": "SUPERON",
+      "grade": "309",
+      "sizes": [
+        "2.50 mm",
+        "3.15 mm",
+        "4.00 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "Dissimilar metal welding",
+        "Stainless steel fabrication"
+      ]
+    },
+    {
+      "id": "superon-ss-310",
+      "category": "Welding Electrodes",
+      "subcategory": "Stainless Steel",
+      "name": "Superon Stainless Steel Electrodes",
+      "brand": "SUPERON",
+      "grade": "310",
+      "sizes": [
+        "3.15 mm",
+        "4.00 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "High-temperature applications",
+        "Furnace parts",
+        "Heat-resistant fabrication"
+      ]
+    },
+    {
+      "id": "superon-ss-316",
+      "category": "Welding Electrodes",
+      "subcategory": "Stainless Steel",
+      "name": "Superon Stainless Steel Electrodes",
+      "brand": "SUPERON",
+      "grade": "316",
+      "sizes": [
+        "2.50 mm",
+        "3.15 mm",
+        "4.00 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "Stainless steel fabrication",
+        "Food processing equipment",
+        "Chemical industry",
+        "Pharmaceutical industry"
+      ]
+    },
+    {
+      "id": "superon-ss-tig",
+      "category": "TIG Filler Rods",
+      "subcategory": null,
+      "name": "Superon SS TIG Filler Rods",
+      "brand": "SUPERON SS TIG",
+      "grade":"304",
+      "sizes": [
+        "1.60 mm",
+        "2.00 mm",
+        "2.40 mm",
+        "3.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "TIG Welding",
+        "Stainless Steel Welding",
+        "Precision Fabrication"
+      ]
+    },
+    {
+      "id": "superon-ss-tig",
+      "category": "TIG Filler Rods",
+      "subcategory": null,
+      "name": "Superon SS TIG Filler Rods",
+      "brand": "SUPERON SS TIG",
+      "grade":"308",
+      "sizes": [
+        "1.60 mm",
+        "2.00 mm",
+        "2.40 mm",
+        "3.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "TIG Welding",
+        "Stainless Steel Welding",
+        "Precision Fabrication"
+      ]
+    },
+     {
+      "id": "superon-ss-tig",
+      "category": "TIG Filler Rods",
+      "subcategory": null,
+      "name": "Superon SS TIG Filler Rods",
+      "brand": "SUPERON SS TIG",
+      "grade":"309",
+      "sizes": [
+        "1.60 mm",
+        "2.00 mm",
+        "2.40 mm",
+        "3.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "TIG Welding",
+        "Stainless Steel Welding",
+        "Precision Fabrication"
+      ]
+    },
+     {
+      "id": "superon-ss-tig",
+      "category": "TIG Filler Rods",
+      "subcategory": null,
+      "name": "Superon SS TIG Filler Rods",
+      "brand": "SUPERON SS TIG",
+      "grade":"316",
+      "sizes": [
+        "1.60 mm",
+        "2.00 mm",
+        "2.40 mm",
+        "3.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "TIG Welding",
+        "Stainless Steel Welding",
+        "Precision Fabrication"
+      ]
+    },
+     {
+      "id": "superon-ss-tig",
+      "category": "TIG Filler Rods",
+      "subcategory": null,
+      "name": "Superon SS TIG Filler Rods",
+      "brand": "SUPERON SS TIG",
+      "grade":"316E",
+      "sizes": [
+        "1.60 mm",
+        "2.00 mm",
+        "2.40 mm",
+        "3.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "TIG Welding",
+        "Stainless Steel Welding",
+        "Precision Fabrication"
+      ]
+    },
+    {
+      "id": "rasi-ss-tig",
+      "category": "TIG Filler Rods",
+      "subcategory": null,
+      "name": "Rasi SS TIG Filler Rods",
+      "brand": "RASI SS TIG",
+      "grade": "304",
+      "sizes": [
+        "1.60 mm",
+        "2.00 mm",
+        "2.40 mm",
+        "3.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "TIG Welding",
+        "Stainless Steel Welding",
+        "Precision Fabrication"
+      ]
+    },
+    {
+      "id": "rasi-ss-tig",
+      "category": "TIG Filler Rods",
+      "subcategory": null,
+      "name": "Rasi SS TIG Filler Rods",
+      "brand": "RASI SS TIG",
+      "grade": "308",
+      "sizes": [
+        "1.60 mm",
+        "2.00 mm",
+        "2.40 mm",
+        "3.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "TIG Welding",
+        "Stainless Steel Welding",
+        "Precision Fabrication"
+      ]
+    },
+    {
+      "id": "rasi-ss-tig",
+      "category": "TIG Filler Rods",
+      "subcategory": null,
+      "name": "Rasi SS TIG Filler Rods",
+      "brand": "RASI SS TIG",
+      "grade": "309",
+      "sizes": [
+        "1.60 mm",
+        "2.00 mm",
+        "2.40 mm",
+        "3.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "TIG Welding",
+        "Stainless Steel Welding",
+        "Precision Fabrication"
+      ]
+    },
+    {
+      "id": "rasi-ss-tig",
+      "category": "TIG Filler Rods",
+      "subcategory": null,
+      "name": "Rasi SS TIG Filler Rods",
+      "brand": "RASI SS TIG",
+      "grade": "316",
+      "sizes": [
+        "1.60 mm",
+        "2.00 mm",
+        "2.40 mm",
+        "3.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "TIG Welding",
+        "Stainless Steel Welding",
+        "Precision Fabrication"
+      ]
+    },
+      {
+      "id": "rasi-ss-tig",
+      "category": "TIG Filler Rods",
+      "subcategory": null,
+      "name": "Rasi CO2 MIG Wire (ER70S2)",
+      "brand": "RASI ER70S2",
+      "grade":null,
+      "sizes": [
+        "1.60 mm",
+        "2.00 mm",
+        "2.40 mm",
+        "3.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "TIG Welding",
+        "Stainless Steel Welding",
+        "Precision Fabrication"
+      ]
+    },
+    {
+      "id": "rasi-mig-co2-wire",
+      "category": "MIG / MAG Welding Wire",
+      "subcategory": null,
+      "name": "Rasi CO2 MIG Wire (ER70S-6)",
+      "brand": "RASI co2 wire",
+      "grade": "ER70S-6",
+      "sizes": [
+        "0.80 mm",
+        "1.00 mm",
+        "1.20 mm",
+        "0.80 mm (12.5 kg Spool)"
+      ],
+      "packing": [],
+      "applications": [
+        "CO2 Welding",
+        "MIG Welding",
+        "Fabrication",
+        "Automobile Industry"
+      ]
+    },
+    {
+      "id": "superon-ss-mig-wire",
+      "category": "MIG / MAG Welding Wire",
+      "subcategory": null,
+      "name": "Superon SS MIG Wire",
+      "brand": "SUPERON SS MIG wire",
+      "grade": "304",
+      "sizes": [
+        "0.80 mm",
+        "1.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "MIG Welding",
+        "Stainless Steel Fabrication",
+        "Food Processing Equipment",
+        "Chemical Industry"
+      ]
+    },
+        {
+      "id": "superon-ss-mig-wire",
+      "category": "MIG / MAG Welding Wire",
+      "subcategory": null,
+      "name": "Superon SS MIG Wire",
+      "brand": "SUPERON SS MIG wire",
+      "grade": "308",
+      "sizes": [
+        "0.80 mm",
+        "1.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "MIG Welding",
+        "Stainless Steel Fabrication",
+        "Food Processing Equipment",
+        "Chemical Industry"
+      ]
+    },
+        {
+      "id": "superon-ss-mig-wire",
+      "category": "MIG / MAG Welding Wire",
+      "subcategory": null,
+      "name": "Superon SS MIG Wire",
+      "brand": "SUPERON SS MIG wire",
+      "grade": "309",
+      "sizes": [
+        "0.80 mm",
+        "1.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "MIG Welding",
+        "Stainless Steel Fabrication",
+        "Food Processing Equipment",
+        "Chemical Industry"
+      ]
+    },
+        {
+      "id": "superon-ss-mig-wire",
+      "category": "MIG / MAG Welding Wire",
+      "subcategory": null,
+      "name": "Superon SS MIG Wire",
+      "brand": "SUPERON SS MIG wire",
+      "grade": "316",
+      "sizes": [
+        "0.80 mm",
+        "1.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "MIG Welding",
+        "Stainless Steel Fabrication",
+        "Food Processing Equipment",
+        "Chemical Industry"
+      ]
+    },
+        {
+      "id": "superon-ss-mig-wire",
+      "category": "MIG / MAG Welding Wire",
+      "subcategory": null,
+      "name": "Superon SS MIG Wire",
+      "brand": "SUPERON SS MIG wire",
+      "grade": "316E",
+      "sizes": [
+        "0.80 mm",
+        "1.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "MIG Welding",
+        "Stainless Steel Fabrication",
+        "Food Processing Equipment",
+        "Chemical Industry"
+      ]
+    },
+    {
+      "id": "rasi-ss-mig-wire",
+      "category": "MIG / MAG Welding Wire",
+      "subcategory": null,
+      "name": "Rasi SS MIG Wire",
+      "brand": "RASI SS MIG wire",
+      "grade": null,
+      "sizes": [
+        "0.80 mm",
+        "1.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "MIG Welding",
+        "Stainless Steel Fabrication",
+        "Food Processing Equipment",
+        "Chemical Industry"
+      ]
+    },
+    {
+      "id": "rasi-ss-mig-wire",
+      "category": "MIG / MAG Welding Wire",
+      "subcategory": null,
+      "name": "Rasi SS MIG Wire",
+      "brand": "RASI SS MIG wire",
+      "grade": "304",
+      "sizes": [
+        "0.80 mm",
+        "1.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "MIG Welding",
+        "Stainless Steel Fabrication",
+        "Food Processing Equipment",
+        "Chemical Industry"
+      ]
+    },
+    {
+      "id": "rasi-ss-mig-wire",
+      "category": "MIG / MAG Welding Wire",
+      "subcategory": null,
+      "name": "Rasi SS MIG Wire",
+      "brand": "RASI SS MIG wire",
+      "grade": "308",
+      "sizes": [
+        "0.80 mm",
+        "1.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "MIG Welding",
+        "Stainless Steel Fabrication",
+        "Food Processing Equipment",
+        "Chemical Industry"
+      ]
+    },
+    {
+      "id": "rasi-ss-mig-wire",
+      "category": "MIG / MAG Welding Wire",
+      "subcategory": null,
+      "name": "Rasi SS MIG Wire",
+      "brand": "RASI SS MIG wire",
+      "grade": "309",
+      "sizes": [
+        "0.80 mm",
+        "1.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "MIG Welding",
+        "Stainless Steel Fabrication",
+        "Food Processing Equipment",
+        "Chemical Industry"
+      ]
+    },
+    {
+      "id": "rasi-ss-mig-wire",
+      "category": "MIG / MAG Welding Wire",
+      "subcategory": null,
+      "name": "Rasi SS MIG Wire",
+      "brand": "RASI SS MIG wire",
+      "grade": "316",
+      "sizes": [
+        "0.80 mm",
+        "1.20 mm"
+      ],
+      "packing": [],
+      "applications": [
+        "MIG Welding",
+        "Stainless Steel Fabrication",
+        "Food Processing Equipment",
+        "Chemical Industry"
+      ]
+    },
+    {
+      "id": "red-oxide-primer",
+      "category": "Primers",
+      "subcategory": null,
+      "name": "Red Oxide Primer",
+      "brand": null,
+      "grade": null,
+      "sizes": [],
+      "packing": [
+        "1 Litre",
+        "4 Litres",
+        "20 Litres"
+      ],
+      "applications": [
+        "Metal surface protection",
+        "Corrosion resistance",
+        "Industrial painting"
+      ]
+    }
+  ]
+}

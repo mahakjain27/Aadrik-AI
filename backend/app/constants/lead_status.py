@@ -1,0 +1,6 @@
+NEW = "new"
+CONTACTED = "contacted"
+QUOTED = "quoted"
+NEGOTIATING = "negotiating"
+WON = "won"
+LOST = "lost"

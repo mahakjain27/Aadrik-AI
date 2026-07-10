@@ -1,0 +1,158 @@
+/*
+ * Brand theme: rich wine ombre. Structural chrome (navbar, primary buttons,
+ * active sidebar nav) uses a vertical charcoal-to-burgundy gradient; flatter
+ * surfaces (chat bubble, icons, outline buttons) use a solid deep wine so
+ * burgundy reads as the dominant brand color everywhere, not just an accent.
+ *
+ * Bootstrap 5.3 hardcodes hex values per-component instead of always
+ * referencing --bs-primary, so each of these needs its own override rather
+ * than a single root-variable change.
+ */
+
+:root {
+  --bs-primary: #5c1030;
+  --bs-primary-rgb: 92, 16, 48;
+  --wine-ombre: linear-gradient(180deg, #221f1f 0%, #4a0f28 60%, #6d1836 100%);
+  --wine-ombre-hover: linear-gradient(180deg, #17151a 0%, #3a0c1f 60%, #591430 100%);
+  --wine-ombre-active: linear-gradient(180deg, #100f10 0%, #2c0918 60%, #47102a 100%);
+  --wine-deep: #5c1030;
+
+  /* Shadows need enough opacity/blur and a non-white page background to
+     actually read as a lifted edge rather than a barely-visible line. */
+  --shadow-card: 0 4px 16px rgba(92, 16, 48, 0.18), 0 1px 3px rgba(92, 16, 48, 0.12);
+  --shadow-popup: 0 8px 24px rgba(92, 16, 48, 0.24), 0 2px 6px rgba(92, 16, 48, 0.14);
+
+  --bs-primary-text-emphasis: #4a0f28;
+  --bs-primary-bg-subtle: #f6e3e7;
+  --bs-primary-border-subtle: #e3c3cb;
+}
+
+.bg-light {
+  background-color: #f2ecee !important;
+}
+
+nav.navbar.bg-primary {
+  background-image: var(--wine-ombre);
+}
+
+.btn-primary {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: #221f1f;
+  --bs-btn-border-color: #221f1f;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #17151a;
+  --bs-btn-hover-border-color: #130f13;
+  --bs-btn-focus-shadow-rgb: 92, 16, 48;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #100f10;
+  --bs-btn-active-border-color: #0c0b0c;
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: #221f1f;
+  --bs-btn-disabled-border-color: #221f1f;
+  background-image: var(--wine-ombre);
+}
+
+.btn-primary:hover {
+  background-image: var(--wine-ombre-hover);
+}
+
+.btn-primary:active,
+.btn-primary:focus-visible {
+  background-image: var(--wine-ombre-active);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: #5c1030;
+  --bs-btn-border-color: #5c1030;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #5c1030;
+  --bs-btn-hover-border-color: #5c1030;
+  --bs-btn-focus-shadow-rgb: 92, 16, 48;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #5c1030;
+  --bs-btn-active-border-color: #5c1030;
+  --bs-btn-disabled-color: #5c1030;
+  --bs-btn-disabled-border-color: #5c1030;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:active {
+  background-image: var(--wine-ombre);
+}
+
+.list-group-item {
+  --bs-list-group-active-bg: #221f1f;
+  --bs-list-group-active-border-color: #221f1f;
+}
+
+.list-group-item.active {
+  background-image: var(--wine-ombre);
+}
+
+/* Sidebar: full-height wine ombre instead of white, with a light blush pill
+   for the active nav item since a dark-on-dark highlight wouldn't read. */
+.app-sidebar {
+  background-image: var(--wine-ombre);
+  min-height: 100vh;
+}
+
+.app-sidebar h5 {
+  color: #ffffff;
+}
+
+.app-sidebar .text-muted {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.app-sidebar .list-group-item {
+  background-color: transparent;
+  border: none;
+  border-radius: 8px !important;
+  margin-bottom: 2px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.app-sidebar .list-group-item:hover,
+.app-sidebar .list-group-item:focus {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.app-sidebar .list-group-item.active {
+  background-image: none;
+  background-color: #f0dde2;
+  color: #4a0f28;
+  font-weight: 600;
+}
+
+/* Tinted shadows: burgundy instead of grey/black on every shadowed surface,
+   so white cards read as part of the wine theme rather than generic UI. */
+.shadow-sm {
+  box-shadow: 0 0.125rem 0.35rem rgba(92, 16, 48, 0.16) !important;
+}
+
+/* Product catalogue accordion: replace Bootstrap's default blue "expanded
+   section" state (--bs-primary-bg-subtle etc. are hardcoded independently of
+   --bs-primary, so they need their own override) with a rose fill + wine
+   left border, and recolor the chevron icon to match. */
+.accordion-button {
+  --bs-accordion-btn-focus-box-shadow: 0 0 0 0.25rem rgba(92, 16, 48, 0.25);
+  --bs-accordion-btn-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%235c1030'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708'/%3e%3c/svg%3e");
+  --bs-accordion-btn-active-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%234a0f28'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708'/%3e%3c/svg%3e");
+}
+
+.accordion-button:not(.collapsed) {
+  border-left: 3px solid #4a0f28;
+  padding-left: calc(1.25rem - 3px);
+}
+
+/* Product size chips: wine on hover instead of Bootstrap's neutral grey. */
+.btn-outline-secondary {
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #5c1030;
+  --bs-btn-hover-border-color: #5c1030;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #4a0f28;
+  --bs-btn-active-border-color: #4a0f28;
+  --bs-btn-focus-shadow-rgb: 92, 16, 48;
+}

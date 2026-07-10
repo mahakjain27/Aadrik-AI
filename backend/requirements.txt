@@ -1,0 +1,26 @@
+# Aadrik AI backend dependencies
+# Curated from the original pip freeze - trimmed to packages actually
+# imported in app/. See audit notes for what was removed and why.
+
+fastapi==0.138.1
+uvicorn[standard]==0.49.0
+pydantic==2.13.4
+python-dotenv==1.2.2
+
+# Chat + embeddings client (local LM Studio, zero cost - see app/core/config.py)
+openai==2.44.0
+
+# RAG / vector store
+chromadb==1.5.9
+langchain-community==0.4.2
+langchain-core==1.4.8
+langchain-chroma==1.1.0
+langchain-text-splitters==1.1.2
+
+# Document loaders
+pypdf==6.14.2
+
+# NOTE: .docx loading (UnstructuredWordDocumentLoader in app/rag/loaders.py)
+# requires the `unstructured[docx]` package - not installed, adds heavy deps.
+# It already fails silently via try/except, so only add this if you actually
+# start putting Word docs in knowledge_base/.
