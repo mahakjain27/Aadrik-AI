@@ -13,7 +13,8 @@ backend/app/.env
 backend/database/chroma/
 database/chroma/
 
-# SQLite WAL/shared-memory files - transient runtime state
+# SQLite database - local runtime state, recreated by init_db() on startup
+backend/database/app.db
 backend/database/app.db-shm
 backend/database/app.db-wal
 
