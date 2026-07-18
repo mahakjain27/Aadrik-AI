@@ -9,7 +9,7 @@ An internal AI-powered sales platform for **Aadrik Distributors Pvt. Ltd.** (wel
 - **AI Chat** — answers questions from the company knowledge base only (no invented pricing or specs), backed by retrieval-augmented generation.
 - **Product Explorer** — browse the catalog by category/brand/grade and jump straight into a quotation request.
 - **Quotation requests** — staff submit a request from chat or the product explorer; a branded PDF quote can be generated and downloaded.
-- **CRM dashboard** — every quotation request becomes a lead with a status (Pending / Contacted / Quotation Sent / Won / Lost), searchable and filterable. Each lead tracks who created it, who it's assigned to, who closed it (and when), and its source (`manual` today; ready for `whatsapp`/`website` once those channels exist).
+- **CRM dashboard** — every quotation request becomes a lead with a status (Pending / Contacted / Quotation Sent / Won / Lost), searchable and filterable. Each lead tracks who created it, who it's assigned to, who closed it (and when), and its source (`manual` or `whatsapp`).
 - **AI lead scoring** — priority score (High/Medium/Low) computed server-side from order size, recency, and repeat-customer signals, shown in the CRM table and AI Insights. Built as a list of composable signal functions so new inputs (e.g. WhatsApp engagement) can be added later without touching the rest.
 - **AI Insights** — a Copilot-style summary, top-priority-lead card, and pipeline health cards on the Dashboard, driven by the same lead data.
 - **Activity Log** — admin-only audit trail of user and lead lifecycle events (created, status changed, assigned, role changed, disabled, password reset).
@@ -17,6 +17,12 @@ An internal AI-powered sales platform for **Aadrik Distributors Pvt. Ltd.** (wel
 - **Analytics** — win rate, lead volume by status/city/month, top products and brands.
 - **Company & Policies pages** — company info and policies rendered straight from the knowledge base markdown.
 - **Session history** — chats are persisted per logged-in user and resumable from the sidebar.
+- **WhatsApp integration** — customers can chat with the same AI assistant over WhatsApp (Meta Cloud API webhook), browse the catalog through native interactive list menus, and get a link to a public quotation form; approved quotes can be sent back as a WhatsApp PDF document. WhatsApp conversations land in the CRM as leads with `whatsapp` as the source.
+- **Sales Inbox** — a live queue (WebSocket-backed) of conversations needing a human, filterable by status (Waiting for Sales / AI Handling / Open / Closed / Archived), with reply, assign, close/reopen, and archive actions.
+- **Public quotation form** — an unauthenticated, mobile-friendly page (linked from WhatsApp) customers fill out directly to request a quote, no login required.
+- **Product Management (admin)** — full CRUD on the product catalog from the UI, with an automatic knowledge-base resync after every change so the AI's answers stay in sync with the catalog.
+- **Knowledge Base Manager (admin)** — upload/preview/delete source documents (PDF, DOCX, etc.) that back the RAG pipeline, view indexing stats, and trigger a full vector-store rebuild from the UI.
+- **Monthly reports** — a downloadable PDF summarizing enquiries, conversions, won/lost/expired deals, top products, and AI-vs-human resolution rates for a given month.
 
 ## Tech stack
 
@@ -30,15 +36,15 @@ An internal AI-powered sales platform for **Aadrik Distributors Pvt. Ltd.** (wel
 Aadrik-AI/
 ├── backend/
 │   ├── app/
-│   │   ├── api/             # FastAPI routers (auth, users, activity, chat, products, sessions, quotation, crm, knowledge)
+│   │   ├── api/             # FastAPI routers (auth, users, activity, chat, products, product_admin, sessions, quotation, public_quote, crm, customers, knowledge, knowledge_documents, notifications, reports, realtime, whatsapp_webhook, system)
 │   │   ├── core/             # settings, logging, exception handlers, security (JWT/hashing), rate limiting, company info
 │   │   ├── constants/        # shared enums (roles, lead/quotation status, notification types)
 │   │   ├── database/         # SQLite connection + schema + migrations + queries
 │   │   ├── middleware/       # JWT auth dependency (get_current_user, require_roles)
 │   │   ├── models/            # Pydantic models (quotation, user)
 │   │   ├── rag/               # loaders, splitter, embedder, vector store, retriever
-│   │   ├── schemas/           # Pydantic request/response schemas (auth, user, lead, chat, session, product)
-│   │   ├── services/          # business logic (auth, user, activity_log, lead_scoring, ai_service, product_service, session_service, quotation_pdf, knowledge_service)
+│   │   ├── schemas/           # Pydantic request/response schemas (auth, user, lead, customer, chat, session, product, knowledge_document)
+│   │   ├── services/          # business logic (auth, user, activity_log, lead_scoring, ai_service, product_service, product_admin_service, product_knowledge_sync, session_service, quotation_pdf, quotation_email, quotation_whatsapp, whatsapp_service, whatsapp_menu, customer_service, knowledge_document_service, knowledge_stats_service, monthly_report, monthly_report_pdf)
 │   │   └── main.py
 │   ├── scripts/
 │   │   ├── build_rag.py      # one-off script: builds the Chroma vector store from knowledge_base/
@@ -49,9 +55,9 @@ Aadrik-AI/
 │   └── src/
 │       ├── components/        # reusable UI (modals, charts, chat widgets, CRM widgets, notification bell)
 │       ├── context/            # AuthContext (login state, JWT storage)
-│       ├── pages/               # top-level views (Login, CRM Dashboard, Customers, Analytics, User Management, Activity Log, Settings, Policies, Company)
+│       ├── pages/               # top-level views (Login, CRM Dashboard, Customers, Sales Inbox, Analytics, Product Management, Knowledge Base Manager, User Management, Activity Log, Settings, Policies, Company)
 │       ├── services/            # API client (axios, with auth + 401 handling)
-│       └── utils/                # small pure helpers (permissions/RBAC, session grouping, follow-up alerts, lead scoring category rules)
+│       └── utils/                # small pure helpers (permissions/RBAC, session grouping, follow-up alerts, lead scoring category rules, time-ago formatting)
 ├── knowledge_base/            # markdown source-of-truth the AI answers from
 ├── data/products.json         # product catalog
 └── docs/                       # ARCHITECTURE.md, API.md, ROADMAP.md, CHANGELOG.md
@@ -94,6 +100,11 @@ Environment variables (create `backend/app/.env`):
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | How long a login session lasts before re-authentication is required |
 | `FRONTEND_ORIGIN` | `http://localhost:5173` | Allowed CORS origin |
 | `RETRIEVER_K` | `4` | Number of chunks retrieved per chat query |
+| `WHATSAPP_ACCESS_TOKEN` | *(unset)* | Meta WhatsApp Cloud API access token — required for WhatsApp send/receive |
+| `WHATSAPP_PHONE_NUMBER_ID` | *(unset)* | Meta phone number id the messages are sent from |
+| `WHATSAPP_BUSINESS_ACCOUNT_ID` | *(unset)* | Meta WhatsApp Business Account id |
+| `WHATSAPP_VERIFY_TOKEN` | *(unset)* | Shared secret used to verify the `/webhook/whatsapp` subscription with Meta |
+| `PUBLIC_BASE_URL` | *(unset)* | Publicly reachable base URL (e.g. via `cloudflared`) used to build the `/quote` link sent to WhatsApp customers — without it, WhatsApp quotation requests are disabled |
 
 ## Running the frontend
 
@@ -114,9 +125,9 @@ Environment variables (`frontend/.env`):
 
 | Role | Access |
 |---|---|
-| `admin` | Everything — Chat, Dashboard, Analytics, Customers, Products, Policies, Company, Settings, User Management, Activity Log |
-| `manager` | Dashboard, Analytics, Customers, Products (can assign/reassign leads) |
-| `sales` | Chat, Dashboard, Customers, Products |
+| `admin` | Everything — Chat, Dashboard, Analytics, Customers, Sales Inbox, Products, Product Management, Knowledge Base Manager, Monthly Reports, Policies, Company, Settings, User Management, Activity Log |
+| `manager` | Dashboard, Analytics, Customers, Sales Inbox, Products, Product Management, Knowledge Base Manager, Monthly Reports (can assign/reassign leads) |
+| `sales` | Chat, Dashboard, Customers, Sales Inbox, Products |
 | `viewer` | Chat, Products |
 
 Defined in `frontend/src/utils/permissions.js` (frontend gating) and enforced independently in `backend/app/middleware/auth.py` (`require_roles`) on every endpoint — the frontend hiding a nav item is a UX nicety, not the actual security boundary.
