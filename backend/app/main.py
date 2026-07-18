@@ -40,15 +40,9 @@ app = FastAPI(
 )
 register_exception_handlers(app)
 
-_allowed_origins = {settings.frontend_origin}
-if "localhost" in settings.frontend_origin:
-    _allowed_origins.add(settings.frontend_origin.replace("localhost", "127.0.0.1"))
-elif "127.0.0.1" in settings.frontend_origin:
-    _allowed_origins.add(settings.frontend_origin.replace("127.0.0.1", "localhost"))
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=list(_allowed_origins),
+    allow_origins=settings.frontend_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
