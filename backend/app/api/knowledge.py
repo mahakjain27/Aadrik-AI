@@ -1,7 +1,9 @@
 import re
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+
+from app.middleware.auth import get_current_user
 
 router = APIRouter(prefix="/knowledge", tags=["Knowledge"])
 
@@ -42,16 +44,22 @@ def parse_sections(text: str):
 
 def load_sections(filename: str):
     path = KNOWLEDGE_BASE / filename
+
     if not path.exists():
         raise HTTPException(404, f"{filename} not found")
+
     return parse_sections(path.read_text(encoding="utf-8"))
 
 
 @router.get("/policies")
-def get_policies():
+def get_policies(
+    current_user=Depends(get_current_user),
+):
     return load_sections("policies.md")
 
 
 @router.get("/company")
-def get_company():
+def get_company(
+    current_user=Depends(get_current_user),
+):
     return load_sections("company.md")

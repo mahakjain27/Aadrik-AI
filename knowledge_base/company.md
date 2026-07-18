@@ -224,5 +224,5 @@ Aadrik Industries is committed to delivering dependable industrial solutions bac
 | **State** | Tamil Nadu |
 | **Country** | India |
 | **PIN Code** | 600001 |
-| **Phone** | +91 44 2525 0910 |
+| **Phone** | +91 9840050923 |
 | **Business Hours** | Monday – Saturday, 10:00 AM – 7:00 PM |

@@ -1,6 +1,10 @@
 import NotificationBell from "./NotificationBell";
+import { useAuth } from "../context/AuthContext";
+import { canAccess } from "../utils/permissions";
 
-function Header({ onOpenCRM }) {
+function Header({ onOpenCRM, onOpenSession, onOpenQuotation }) {
+  const { user, logout } = useAuth();
+
   return (
     <nav className="navbar navbar-dark bg-primary shadow-sm">
       <div className="container-fluid">
@@ -13,7 +17,27 @@ function Header({ onOpenCRM }) {
             Industrial Sales Assistant
           </span>
 
-          <NotificationBell onOpenCRM={onOpenCRM} />
+          {canAccess(user?.role, "dashboard") && (
+            <NotificationBell
+              onOpenCRM={onOpenCRM}
+              onOpenSession={onOpenSession}
+              onOpenQuotation={onOpenQuotation}
+            />
+          )}
+
+          {user?.name && (
+            <span className="text-white d-none d-md-inline">
+              {user.name}
+            </span>
+          )}
+
+          <button
+            type="button"
+            className="btn btn-outline-light btn-sm"
+            onClick={logout}
+          >
+            Logout
+          </button>
         </div>
       </div>
     </nav>

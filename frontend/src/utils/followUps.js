@@ -1,5 +1,8 @@
 const CLOSED_STATUSES = new Set(["Won", "Lost"]);
 
+// Display copy only - the actual thresholds live in
+// backend/app/services/lead_scoring.py (FOLLOW_UP_DAYS/OVERDUE_DAYS), which
+// computes follow_up_severity/days_open on every lead from GET /crm/leads.
 export const FOLLOW_UP_DAYS = 2;
 export const OVERDUE_DAYS = 5;
 
@@ -14,22 +17,21 @@ export function isOpenLead(lead) {
 }
 
 /**
- * Open leads that have gone quiet long enough to need action, ranked most
- * urgent first. Shared by the AI Insights follow-up card and the
- * notification bell so both agree on what counts as "due" vs "overdue".
+ * Leads that have gone quiet long enough to need action, ranked most urgent
+ * first. Reads the follow_up_severity/days_open fields the backend already
+ * computed on each lead, so this and the notification bell always agree
+ * with whatever WhatsApp/ERP automations end up calling server-side.
  */
 export function getFollowUpAlerts(leads) {
   return leads
-    .filter(isOpenLead)
-    .map((lead) => ({ lead, age: daysSince(lead.created_at) }))
-    .filter(({ age }) => age >= FOLLOW_UP_DAYS)
-    .map(({ lead, age }) => ({
+    .filter((lead) => lead.follow_up_severity)
+    .map((lead) => ({
       id: lead.id,
       companyName: lead.company_name,
       productName: lead.product_name,
       status: lead.status,
-      daysOpen: Math.floor(age),
-      severity: age >= OVERDUE_DAYS ? "overdue" : "due",
+      daysOpen: lead.days_open,
+      severity: lead.follow_up_severity,
     }))
     .sort((a, b) => b.daysOpen - a.daysOpen);
 }

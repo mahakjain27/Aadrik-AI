@@ -6,7 +6,6 @@ import {
   FOLLOW_UP_DAYS,
   OVERDUE_DAYS,
 } from "../utils/followUps";
-import { scoreLeads } from "../utils/leadScoring";
 
 const TONE_COLORS = {
   good: "#0ca30c",
@@ -24,8 +23,6 @@ function computeInsights(leads) {
   const total = leads.length;
   if (total === 0) return { cards: [], alerts: [], topLead: null, summary: [] };
 
-  const scored = scoreLeads(leads);
-
   const won = leads.filter((l) => l.status === "Won").length;
   const lost = leads.filter((l) => l.status === "Lost").length;
   const closed = won + lost;
@@ -38,10 +35,10 @@ function computeInsights(leads) {
   const staleOpenOverdue = followUpAlerts.filter((a) => a.severity === "overdue").length;
 
   // Highest priority open lead, ranked by the shared AI score
-  const openScored = scored.filter((l) => isOpenLead(l) && l.aiScore != null);
+  const openScored = leads.filter((l) => isOpenLead(l) && l.ai_score != null);
   const topLead =
     openScored.length > 0
-      ? [...openScored].sort((a, b) => b.aiScore - a.aiScore)[0]
+      ? [...openScored].sort((a, b) => b.ai_score - a.ai_score)[0]
       : null;
 
   // City concentration
@@ -219,7 +216,7 @@ function computeInsights(leads) {
   const summary = [];
   if (topLead) {
     summary.push(
-      `${topLead.company_name} has the highest priority score (${topLead.aiScore}/100) — call today.`
+      `${topLead.company_name} has the highest priority score (${topLead.ai_score}/100) — call today.`
     );
   }
   if (staleOpenDue > 0) {
@@ -281,7 +278,7 @@ function CopilotSummary({ lines }) {
 
 function PriorityLeadCard({ lead, onOpenCRM }) {
   if (!lead) return null;
-  const color = TONE_COLORS[lead.aiPriority === "High" ? "risk" : "attention"];
+  const color = TONE_COLORS[lead.ai_priority === "High" ? "risk" : "attention"];
 
   return (
     <div className="col-12 mb-3">
@@ -320,7 +317,7 @@ function PriorityLeadCard({ lead, onOpenCRM }) {
             {lead.product_name} · Qty {lead.quantity} · {lead.delivery_city}
           </div>
           <div style={{ fontSize: "12.5px", color: INK.muted, fontWeight: 600, marginTop: 6 }}>
-            Score {lead.aiScore}/100 ({lead.aiPriority}) — {lead.aiReason}
+            Score {lead.ai_score}/100 ({lead.ai_priority}) — {lead.ai_reason}
           </div>
         </div>
 

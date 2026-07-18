@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from io import BytesIO
+from pathlib import Path
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
@@ -8,6 +9,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.platypus import (
     HRFlowable,
+    Image,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
@@ -20,6 +22,8 @@ from app.core.company import COMPANY
 NAVY = colors.HexColor("#1F3B64")
 BORDER_GREY = colors.HexColor("#c9ccd1")
 MUTED_GREY = colors.HexColor("#666666")
+
+LOGO_PATH = Path(__file__).resolve().parent.parent / "logo.jpeg"
 
 
 def generate_quotation_pdf(lead):
@@ -148,19 +152,38 @@ def generate_quotation_pdf(lead):
     valid_till = quote_date + timedelta(days=COMPANY["validity_days"])
 
     # ---------- Header: logo + company block ----------
-    logo_box = Table(
-        [[Paragraph("AADRIK", logo_placeholder_style)]],
-        colWidths=[width * 0.28],
-        rowHeights=[0.65 * inch],
-    )
-    logo_box.setStyle(
-        TableStyle(
-            [
-                ("BOX", (0, 0), (-1, -1), 1, NAVY),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ]
+    if LOGO_PATH.exists():
+        logo_height = 1.2 * inch
+        logo_width = logo_height * (453 / 413)  # logo.jpeg's native aspect ratio
+        logo_cell = Image(str(LOGO_PATH), width=logo_width, height=logo_height)
+        logo_cell.hAlign = "CENTER"
+        logo_box = Table(
+            [[logo_cell]],
+            colWidths=[width * 0.28],
+            rowHeights=[1.2 * inch],
         )
-    )
+        logo_box.setStyle(
+            TableStyle(
+                [
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ]
+            )
+        )
+    else:
+        logo_box = Table(
+            [[Paragraph("AADRIK", logo_placeholder_style)]],
+            colWidths=[width * 0.28],
+            rowHeights=[0.65 * inch],
+        )
+        logo_box.setStyle(
+            TableStyle(
+                [
+                    ("BOX", (0, 0), (-1, -1), 1, NAVY),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ]
+            )
+        )
 
     company_block = Paragraph(
         f"{COMPANY['name']}<br/>"
@@ -195,6 +218,22 @@ def generate_quotation_pdf(lead):
     # ---------- Quotation title bar ----------
     story.append(Spacer(1, 0.12 * inch))
     story.append(section_bar("QUOTATION"))
+
+    if lead["approval_status"] != "Approved":
+        story.append(Spacer(1, 0.08 * inch))
+        story.append(
+            Paragraph(
+                "PRELIMINARY - PENDING MANAGER APPROVAL, NOT YET FINAL",
+                ParagraphStyle(
+                    "PreliminaryNotice",
+                    parent=normal,
+                    alignment=TA_CENTER,
+                    fontName="Helvetica-Bold",
+                    fontSize=9,
+                    textColor=colors.HexColor("#b23b1f"),
+                ),
+            )
+        )
 
     meta = Table(
         [
@@ -274,8 +313,8 @@ def generate_quotation_pdf(lead):
         lead["size"] or "-",
         lead["quantity"] or "-",
         "-",
-        "-",
-        "-",
+        f"Rs. {lead['unit_price']:.2f}" if lead["unit_price"] is not None else "-",
+        f"Rs. {lead['subtotal']:.2f}" if lead["subtotal"] is not None else "-",
     ]
     product_table = Table(
         [
@@ -307,20 +346,33 @@ def generate_quotation_pdf(lead):
     story.append(product_table)
 
     # ---------- Totals ----------
-    gst_rate = COMPANY["gst_rate_percent"]
+    gst_rate = lead["gst_percent"] if lead["gst_percent"] is not None else COMPANY["gst_rate_percent"]
+    subtotal = lead["subtotal"]
+    gst_amount = round(subtotal * gst_rate / 100, 2) if subtotal is not None else None
+    grand_total = round(subtotal + gst_amount, 2) if subtotal is not None else None
+
     totals = Table(
         [
             [
                 Paragraph("Subtotal", totals_label_style),
-                Paragraph("-", totals_value_style),
+                Paragraph(
+                    f"Rs. {subtotal:.2f}" if subtotal is not None else "-",
+                    totals_value_style,
+                ),
             ],
             [
                 Paragraph(f"GST ({gst_rate}%)", totals_label_style),
-                Paragraph("-", totals_value_style),
+                Paragraph(
+                    f"Rs. {gst_amount:.2f}" if gst_amount is not None else "-",
+                    totals_value_style,
+                ),
             ],
             [
                 Paragraph("Grand Total", totals_label_style),
-                Paragraph("-", totals_value_style),
+                Paragraph(
+                    f"Rs. {grand_total:.2f}" if grand_total is not None else "-",
+                    totals_value_style,
+                ),
             ],
         ],
         colWidths=[width * 0.80, width * 0.20],

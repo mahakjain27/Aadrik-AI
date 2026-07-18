@@ -1,14 +1,49 @@
 import axios from "axios";
 
-import { getUserId } from "../utils/userId";
-
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000",
   headers: {
-    "x-api-key": import.meta.env.VITE_AADRIK_API_KEY,
-    "x-user-id": getUserId(),
+    "Content-Type": "application/json",
   },
 });
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+
+  config.headers["x-api-key"] = import.meta.env.VITE_AADRIK_API_KEY;
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const isLoginRequest = error.config?.url?.includes("/auth/login");
+
+    if (error.response?.status === 401 && !isLoginRequest) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+      window.location.href = "/";
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export async function login(email, password, remember = false) {
+  const response = await api.post("/auth/login", {
+    email,
+    password,
+    remember,
+  });
+
+  return response.data;
+}
 
 export async function sendMessage(message, sessionId) {
   const response = await api.post("/chat", {
@@ -37,9 +72,80 @@ export async function getProducts() {
   return response.data;
 }
 
+export async function getManagedProducts(search, category) {
+  const response = await api.get("/product-admin", {
+    params: {
+      search: search || undefined,
+      category: category || undefined,
+    },
+  });
+
+  return response.data;
+}
+
+export async function createProduct(data) {
+  const response = await api.post("/product-admin", data);
+
+  return response.data;
+}
+
+export async function updateProduct(id, data) {
+  const response = await api.put(`/product-admin/${id}`, data);
+
+  return response.data;
+}
+
+export async function deleteProduct(id) {
+  const response = await api.delete(`/product-admin/${id}`);
+
+  return response.data;
+}
+
 export async function submitQuotation(data) {
   const response = await api.post("/quotation/", data);
 
+  return response.data;
+}
+
+export async function downloadQuotationPdf(id) {
+  const response = await api.get(`/quotation/${id}/pdf`, {
+    responseType: "blob",
+  });
+
+  return response.data;
+}
+
+export async function setQuotationPricing(id, unitPrice, gstPercent) {
+  const response = await api.put(`/quotation/${id}/pricing`, {
+    unit_price: unitPrice,
+    gst_percent: gstPercent,
+  });
+
+  return response.data;
+}
+
+export async function submitQuotationForApproval(id) {
+  const response = await api.post(`/quotation/${id}/submit-for-approval`);
+  return response.data;
+}
+
+export async function approveQuotation(id) {
+  const response = await api.post(`/quotation/${id}/approve`);
+  return response.data;
+}
+
+export async function rejectQuotation(id, reason) {
+  const response = await api.post(`/quotation/${id}/reject`, { reason });
+  return response.data;
+}
+
+export async function sendQuotation(id) {
+  const response = await api.post(`/quotation/${id}/send`);
+  return response.data;
+}
+
+export async function getPendingApprovalQuotations() {
+  const response = await api.get("/quotation/pending-approval");
   return response.data;
 }
 
@@ -51,32 +157,46 @@ export async function updateLeadStatus(id, status) {
   return response.data;
 }
 
-export async function getLeads() {
-  const response = await api.get("/crm/leads");
+export async function getLeads(year, includeArchived) {
+  const response = await api.get("/crm/leads", {
+    params: {
+      year: year || undefined,
+      include_archived: includeArchived || undefined,
+    },
+  });
   return response.data;
 }
 
 export async function deleteLead(id) {
-  const response = await fetch(
-    `http://127.0.0.1:8000/quotation/${id}`,
-    {
-      method: "DELETE",
-      headers: {
-        "x-api-key": import.meta.env.VITE_API_KEY,
-        "x-user-id": "mahak",
-      },
-    }
-  );
+  const response = await api.delete(`/quotation/${id}`);
 
-  if (!response.ok) {
-    throw new Error("Unable to delete lead");
-  }
-
-  return response.json();
+  return response.data;
 }
 
-export async function getCustomers() {
-  const response = await api.get("/quotation/customers");
+export async function archiveLead(id) {
+  const response = await api.post(`/quotation/${id}/archive`);
+  return response.data;
+}
+
+export async function unarchiveLead(id) {
+  const response = await api.post(`/quotation/${id}/unarchive`);
+  return response.data;
+}
+
+export async function getCustomers(search) {
+  const response = await api.get("/customers", {
+    params: search ? { search } : undefined,
+  });
+  return response.data;
+}
+
+export async function getCustomer(id) {
+  const response = await api.get(`/customers/${id}`);
+  return response.data;
+}
+
+export async function updateCustomer(id, data) {
+  const response = await api.patch(`/customers/${id}`, data);
   return response.data;
 }
 
@@ -87,5 +207,222 @@ export async function getPolicies() {
 
 export async function getCompanyInfo() {
   const response = await api.get("/knowledge/company");
+  return response.data;
+}
+
+export async function getUsers() {
+  const response = await api.get("/users");
+  return response.data;
+}
+
+export async function createUser(data) {
+  const response = await api.post("/users", data);
+  return response.data;
+}
+
+export async function updateUser(id, data) {
+  const response = await api.put(`/users/${id}`, data);
+  return response.data;
+}
+
+export async function setUserStatus(id, isActive) {
+  const response = await api.patch(`/users/${id}/status`, {
+    is_active: isActive,
+  });
+  return response.data;
+}
+
+export async function resetUserPassword(id, password) {
+  const response = await api.post(`/users/${id}/reset-password`, {
+    password,
+  });
+  return response.data;
+}
+
+export async function deleteUser(id) {
+  const response = await api.delete(`/users/${id}`);
+  return response.data;
+}
+
+export async function getAssignees() {
+  const response = await api.get("/crm/assignees");
+  return response.data;
+}
+
+export async function assignLead(id, assignedTo) {
+  const response = await api.put(`/crm/leads/${id}/assign`, {
+    assigned_to: assignedTo,
+  });
+  return response.data;
+}
+
+export async function getActivityLog(limit) {
+  const response = await api.get("/activity", {
+    params: limit ? { limit } : undefined,
+  });
+  return response.data;
+}
+
+export async function clearActivityLog(olderThanDays) {
+  const response = await api.delete("/activity", {
+    params: olderThanDays ? { older_than_days: olderThanDays } : undefined,
+  });
+  return response.data;
+}
+
+export async function getWaitingSessions() {
+  const response = await api.get("/sessions/waiting");
+  return response.data;
+}
+
+export async function getInboxSessions(status, search) {
+  const response = await api.get("/sessions/inbox", {
+    params: { status, search: search || undefined },
+  });
+  return response.data;
+}
+
+export async function getSessionNotifications() {
+  const response = await api.get("/sessions/notifications");
+  return response.data;
+}
+
+export async function sendSalesReply(sessionId, message) {
+  const response = await api.post(`/sessions/${sessionId}/reply`, {
+    message,
+  });
+  return response.data;
+}
+
+export async function closeSession(sessionId) {
+  const response = await api.post(`/sessions/${sessionId}/close`);
+  return response.data;
+}
+
+export async function reopenSession(sessionId) {
+  const response = await api.post(`/sessions/${sessionId}/reopen`);
+  return response.data;
+}
+
+export async function assignSession(sessionId, assignedTo) {
+  const response = await api.put(`/sessions/${sessionId}/assign`, {
+    assigned_to: assignedTo,
+  });
+  return response.data;
+}
+
+export async function markSessionRead(sessionId) {
+  const response = await api.post(`/sessions/${sessionId}/mark-read`);
+  return response.data;
+}
+
+export async function archiveSession(sessionId) {
+  const response = await api.post(`/sessions/${sessionId}/archive`);
+  return response.data;
+}
+
+export async function unarchiveSession(sessionId) {
+  const response = await api.post(`/sessions/${sessionId}/unarchive`);
+  return response.data;
+}
+
+export async function deleteSession(sessionId) {
+  const response = await api.delete(`/sessions/${sessionId}`);
+  return response.data;
+}
+
+export async function deleteClosedSessions() {
+  const response = await api.delete("/sessions/closed");
+  return response.data;
+}
+
+export async function getArchivedSessions() {
+  const response = await api.get("/sessions/archived");
+  return response.data;
+}
+
+export async function getKnowledgeDocuments(category) {
+  const response = await api.get("/kb-admin/documents", {
+    params: category ? { category } : undefined,
+  });
+  return response.data;
+}
+
+export async function uploadKnowledgeDocument(file, category) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("category", category);
+
+  const response = await api.post("/kb-admin/documents", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+}
+
+export async function deleteKnowledgeDocument(id) {
+  const response = await api.delete(`/kb-admin/documents/${id}`);
+  return response.data;
+}
+
+export async function previewKnowledgeDocumentText(id) {
+  const response = await api.get(`/kb-admin/documents/${id}/preview-text`);
+  return response.data;
+}
+
+export async function getKnowledgeDocumentFile(id) {
+  const response = await api.get(`/kb-admin/documents/${id}/file`, {
+    responseType: "blob",
+  });
+  return response.data;
+}
+
+export async function getKnowledgeStats() {
+  const response = await api.get("/kb-admin/stats");
+  return response.data;
+}
+
+export async function rebuildKnowledgeBase() {
+  const response = await api.post("/kb-admin/rebuild");
+  return response.data;
+}
+
+export async function getMyProfile() {
+  const response = await api.get("/users/me");
+  return response.data;
+}
+
+export async function updateMyProfile(name, email) {
+  const response = await api.patch("/users/me", { name, email });
+  return response.data;
+}
+
+export async function changeMyPassword(currentPassword, newPassword) {
+  const response = await api.post("/users/me/change-password", {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+  return response.data;
+}
+
+export async function getSystemHealth() {
+  const response = await api.get("/system/health");
+  return response.data;
+}
+
+export async function downloadMonthlyReport(year, month) {
+  const response = await api.get("/reports/monthly", {
+    params: { year, month },
+    responseType: "blob",
+  });
+  return response.data;
+}
+
+export async function getDismissedNotificationKeys() {
+  const response = await api.get("/notifications/dismissed");
+  return response.data.keys;
+}
+
+export async function dismissNotifications(keys) {
+  const response = await api.post("/notifications/dismiss", { keys });
   return response.data;
 }

@@ -16,12 +16,22 @@ class QuotationRequest(BaseModel):
     quantity: str
 
     delivery_city: str
-    pincode: str
+    pincode: Optional[str] = None
 
     gst_number: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class QuotationResponse(BaseModel):
     success: bool
     quotation_id: int
     message: str
+
+
+class QuotationPricingRequest(BaseModel):
+    unit_price: float
+    gst_percent: float = 18.0
+
+
+class QuotationRejectRequest(BaseModel):
+    reason: str

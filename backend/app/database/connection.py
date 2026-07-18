@@ -42,6 +42,12 @@ CREATE TABLE IF NOT EXISTS quotations (
 
     status TEXT NOT NULL DEFAULT 'New',
 
+    created_by INTEGER REFERENCES users(id),
+    closed_by INTEGER REFERENCES users(id),
+    closed_at TEXT,
+    assigned_to INTEGER REFERENCES users(id),
+    source TEXT NOT NULL DEFAULT 'manual',
+
     created_at TEXT NOT NULL DEFAULT (
         STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')
     )
@@ -67,6 +73,213 @@ CREATE TABLE IF NOT EXISTS messages (
 
 CREATE INDEX IF NOT EXISTS idx_messages_session_created
     ON messages (session_id, created_at);
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    name TEXT NOT NULL,
+
+    email TEXT NOT NULL UNIQUE,
+
+    password_hash TEXT NOT NULL,
+
+    role TEXT NOT NULL CHECK(role IN ('admin', 'sales', 'manager', 'viewer')),
+
+    is_active INTEGER NOT NULL DEFAULT 1,
+
+    created_at TEXT NOT NULL DEFAULT (
+        STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')
+    ),
+
+    updated_at TEXT NOT NULL DEFAULT (
+        STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')
+    )
+);
+
+CREATE TRIGGER IF NOT EXISTS trg_users_updated
+AFTER UPDATE ON users
+FOR EACH ROW
+BEGIN
+UPDATE users
+SET updated_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')
+WHERE id = OLD.id;
+END;
+
+CREATE INDEX IF NOT EXISTS idx_users_email
+ON users(email);
+
+CREATE INDEX IF NOT EXISTS idx_users_role
+ON users(role);
+
+CREATE TABLE IF NOT EXISTS activity_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    actor_id INTEGER REFERENCES users(id),
+
+    action TEXT NOT NULL,
+    entity_type TEXT,
+    entity_id INTEGER,
+    message TEXT NOT NULL,
+
+    created_at TEXT NOT NULL DEFAULT (
+        STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_activity_created
+ON activity_log(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_activity_entity
+ON activity_log(entity_type, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS session_reads (
+    session_id      TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    last_read_at    TEXT NOT NULL,
+
+    PRIMARY KEY (session_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS app_state (
+    key     TEXT PRIMARY KEY,
+    value   INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS customers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    phone TEXT NOT NULL UNIQUE,
+
+    company_name TEXT NOT NULL,
+    contact_person TEXT,
+    email TEXT,
+    gst_number TEXT,
+    city TEXT,
+
+    assigned_to INTEGER REFERENCES users(id),
+
+    notes TEXT,
+    tags TEXT,
+
+    created_at TEXT NOT NULL DEFAULT (
+        STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')
+    ),
+
+    updated_at TEXT NOT NULL DEFAULT (
+        STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')
+    )
+);
+
+CREATE TRIGGER IF NOT EXISTS trg_customers_updated
+AFTER UPDATE ON customers
+FOR EACH ROW
+BEGIN
+UPDATE customers
+SET updated_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')
+WHERE id = OLD.id;
+END;
+
+CREATE INDEX IF NOT EXISTS idx_customers_phone
+ON customers(phone);
+
+CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    -- Stable string id exposed to the product catalog API, the WhatsApp
+    -- product menu, and public /quote links (see whatsapp_menu.py) - kept
+    -- separate from the integer PK so backfilled products keep the exact
+    -- "rasi-e6013"-style ids that may already be referenced in an open
+    -- WhatsApp conversation.
+    slug TEXT NOT NULL UNIQUE,
+
+    name TEXT NOT NULL,
+    brand TEXT,
+    category TEXT,
+    subcategory TEXT,
+    grade TEXT,
+    sizes TEXT,
+    packaging TEXT,
+    applications TEXT,
+
+    mrp REAL,
+    selling_price REAL,
+    gst_percent REAL NOT NULL DEFAULT 18,
+    stock_status TEXT NOT NULL DEFAULT 'In Stock'
+        CHECK(stock_status IN ('In Stock', 'Low Stock', 'Out of Stock')),
+    description TEXT,
+
+    is_active INTEGER NOT NULL DEFAULT 1,
+
+    created_at TEXT NOT NULL DEFAULT (
+        STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')
+    ),
+
+    updated_at TEXT NOT NULL DEFAULT (
+        STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')
+    )
+);
+
+CREATE TRIGGER IF NOT EXISTS trg_products_updated
+AFTER UPDATE ON products
+FOR EACH ROW
+BEGIN
+UPDATE products
+SET updated_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')
+WHERE id = OLD.id;
+END;
+
+CREATE INDEX IF NOT EXISTS idx_products_category
+ON products(category);
+
+CREATE INDEX IF NOT EXISTS idx_products_brand
+ON products(brand);
+
+CREATE INDEX IF NOT EXISTS idx_products_active
+ON products(is_active);
+
+CREATE TABLE IF NOT EXISTS knowledge_documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    filename TEXT NOT NULL,
+    storage_path TEXT NOT NULL UNIQUE,
+    file_type TEXT NOT NULL CHECK(file_type IN ('pdf', 'docx', 'txt', 'md')),
+    category TEXT NOT NULL CHECK(category IN (
+        'Policies', 'Catalogues', 'Technical Datasheets', 'FAQs',
+        'Company Information', 'Other'
+    )),
+    file_size INTEGER,
+
+    uploaded_by INTEGER REFERENCES users(id),
+    uploaded_at TEXT NOT NULL DEFAULT (
+        STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_documents_category
+ON knowledge_documents(category);
+
+-- Single-row table (id is always 1) tracking when the vector store was
+-- last rebuilt - updated by build_rag() itself, so it's accurate
+-- regardless of whether a rebuild was triggered manually from Knowledge
+-- Base Manager or automatically after a Product Management save.
+CREATE TABLE IF NOT EXISTS knowledge_base_state (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    last_rebuilt_at TEXT
+);
+
+INSERT OR IGNORE INTO knowledge_base_state (id, last_rebuilt_at) VALUES (1, NULL);
+
+-- Notifications (follow-up alerts, activity feed, pending-approval items)
+-- are computed on the fly from other tables rather than stored, so there's
+-- nothing to mark "read" - dismissing one just needs to hide it for that
+-- user going forward, which is all this table tracks.
+CREATE TABLE IF NOT EXISTS dismissed_notifications (
+    user_id             INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    notification_key    TEXT NOT NULL,
+    dismissed_at        TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')),
+
+    PRIMARY KEY (user_id, notification_key)
+);
 """
 
 
@@ -74,7 +287,404 @@ def get_conn() -> sqlite3.Connection:
     return _conn
 
 
+def _migrate_users_role_constraint() -> None:
+    """
+    SQLite can't ALTER a CHECK constraint in place, so widen the users.role
+    constraint (admin/sales -> admin/sales/manager/viewer) by rebuilding
+    the table when an older schema is detected.
+    """
+
+    row = _conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='users'"
+    ).fetchone()
+
+    if row is None or "'manager'" in row["sql"]:
+        return
+
+    with write_lock:
+        _conn.executescript(
+            """
+            ALTER TABLE users RENAME TO users_old;
+
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL CHECK(role IN ('admin', 'sales', 'manager', 'viewer')),
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')),
+                updated_at TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ','now'))
+            );
+
+            INSERT INTO users (
+                id, name, email, password_hash, role, is_active, created_at, updated_at
+            )
+            SELECT
+                id, name, email, password_hash, role, is_active, created_at, updated_at
+            FROM users_old;
+
+            DROP TABLE users_old;
+
+            DROP INDEX IF EXISTS idx_users_email;
+            DROP INDEX IF EXISTS idx_users_role;
+
+            CREATE INDEX idx_users_email ON users(email);
+            CREATE INDEX idx_users_role ON users(role);
+
+            CREATE TRIGGER IF NOT EXISTS trg_users_updated
+            AFTER UPDATE ON users
+            FOR EACH ROW
+            BEGIN
+                UPDATE users
+                SET updated_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')
+                WHERE id = OLD.id;
+            END;
+            """
+        )
+        _conn.commit()
+
+
+def _migrate_quotations_columns() -> None:
+    columns = {
+        row["name"]
+        for row in _conn.execute(
+            "PRAGMA table_info(quotations)"
+        ).fetchall()
+    }
+
+    missing = {
+        "notes":
+            "ALTER TABLE quotations ADD COLUMN notes TEXT",
+
+        "unit_price":
+            "ALTER TABLE quotations ADD COLUMN unit_price REAL",
+
+        "gst_percent":
+            "ALTER TABLE quotations ADD COLUMN gst_percent REAL",
+
+        "subtotal":
+            "ALTER TABLE quotations ADD COLUMN subtotal REAL",
+
+        "approval_status":
+            "ALTER TABLE quotations ADD COLUMN approval_status TEXT NOT NULL DEFAULT 'Draft'",
+
+        "approved_by":
+            "ALTER TABLE quotations ADD COLUMN approved_by INTEGER REFERENCES users(id)",
+
+        "approved_at":
+            "ALTER TABLE quotations ADD COLUMN approved_at TEXT",
+
+        "rejection_reason":
+            "ALTER TABLE quotations ADD COLUMN rejection_reason TEXT",
+
+        "sent_at":
+            "ALTER TABLE quotations ADD COLUMN sent_at TEXT",
+
+        "sent_via":
+            "ALTER TABLE quotations ADD COLUMN sent_via TEXT",
+
+        "whatsapp_wamid":
+            "ALTER TABLE quotations ADD COLUMN whatsapp_wamid TEXT",
+
+        "whatsapp_delivery_status":
+            "ALTER TABLE quotations ADD COLUMN whatsapp_delivery_status TEXT",
+
+        "customer_id":
+            "ALTER TABLE quotations ADD COLUMN customer_id INTEGER REFERENCES customers(id)",
+
+        "is_archived":
+            "ALTER TABLE quotations ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0",
+    }
+
+    with write_lock:
+        for name, sql in missing.items():
+            if name not in columns:
+                _conn.execute(sql)
+
+        _conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_quotations_whatsapp_wamid "
+            "ON quotations(whatsapp_wamid)"
+        )
+
+        _conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_quotations_customer_id "
+            "ON quotations(customer_id)"
+        )
+
+        _conn.commit()
+
+
+def _migrate_sessions_columns() -> None:
+    columns = {
+        row["name"]
+        for row in _conn.execute(
+            "PRAGMA table_info(sessions)"
+        ).fetchall()
+    }
+
+    missing = {
+        "customer_phone":
+            "ALTER TABLE sessions ADD COLUMN customer_phone TEXT",
+
+        "channel":
+            "ALTER TABLE sessions ADD COLUMN channel TEXT NOT NULL DEFAULT 'internal'",
+
+        "status":
+            "ALTER TABLE sessions ADD COLUMN status TEXT NOT NULL DEFAULT 'Open'",
+
+        "assigned_to":
+            "ALTER TABLE sessions ADD COLUMN assigned_to INTEGER REFERENCES users(id)",
+
+        "is_archived":
+            "ALTER TABLE sessions ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0",
+    }
+
+    with write_lock:
+        for name, sql in missing.items():
+            if name not in columns:
+                _conn.execute(sql)
+
+        _conn.commit()
+
+
+def _migrate_messages_columns() -> None:
+    columns = {
+        row["name"]
+        for row in _conn.execute(
+            "PRAGMA table_info(messages)"
+        ).fetchall()
+    }
+
+    missing = {
+        "wamid":
+            "ALTER TABLE messages ADD COLUMN wamid TEXT",
+    }
+
+    with write_lock:
+        for name, sql in missing.items():
+            if name not in columns:
+                _conn.execute(sql)
+
+        _conn.commit()
+
+
+def _migrate_users_last_login() -> None:
+    columns = {
+        row["name"]
+        for row in _conn.execute(
+            "PRAGMA table_info(users)"
+        ).fetchall()
+    }
+
+    if "last_login_at" not in columns:
+        with write_lock:
+            _conn.execute(
+                "ALTER TABLE users ADD COLUMN last_login_at TEXT"
+            )
+            _conn.commit()
+
+
+def _migrate_backfill_customers() -> None:
+    """One-time backfill: derive a customers row per distinct phone from
+    existing quotations (seeded from that phone's most recent quotation),
+    then link every quotation to it. Idempotent - only touches quotations
+    that don't have a customer_id yet, so this is a fast no-op once the
+    backfill has run."""
+
+    unlinked_phones = _conn.execute(
+        "SELECT DISTINCT phone FROM quotations WHERE customer_id IS NULL"
+    ).fetchall()
+
+    if not unlinked_phones:
+        return
+
+    with write_lock:
+        for row in unlinked_phones:
+            phone = row["phone"]
+
+            customer = _conn.execute(
+                "SELECT id FROM customers WHERE phone = ?",
+                (phone,),
+            ).fetchone()
+
+            if customer is None:
+                latest = _conn.execute(
+                    """
+                    SELECT company_name, contact_person, email, gst_number, delivery_city
+                    FROM quotations
+                    WHERE phone = ?
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                    """,
+                    (phone,),
+                ).fetchone()
+
+                cursor = _conn.execute(
+                    """
+                    INSERT INTO customers
+                    (phone, company_name, contact_person, email, gst_number, city)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        phone,
+                        latest["company_name"],
+                        latest["contact_person"],
+                        latest["email"],
+                        latest["gst_number"],
+                        latest["delivery_city"],
+                    ),
+                )
+                customer_id = cursor.lastrowid
+            else:
+                customer_id = customer["id"]
+
+            _conn.execute(
+                "UPDATE quotations SET customer_id = ? WHERE phone = ? AND customer_id IS NULL",
+                (customer_id, phone),
+            )
+
+        _conn.commit()
+
+
+def _migrate_seed_products() -> None:
+    """One-time seed: import data/products.json into the products table on
+    first run, keeping each product's original slug id (e.g. "rasi-e6013")
+    so existing WhatsApp product links keep resolving. No-ops once the
+    table has any rows, so later admin edits/deletes are never touched.
+
+    data/products.json has 39 entries but only 23 unique "id" values - e.g.
+    all 4 grades (304/308/309/316) of "Rasi SS TIG Filler Rods" share the
+    id "rasi-ss-tig". That's a pre-existing bug (find_product() in
+    whatsapp_menu.py can only ever reach the first match for a given id),
+    not something to replicate here - every real variant gets its own slug
+    (rasi-ss-tig, rasi-ss-tig-2, ...) so none of the 39 are silently lost.
+    """
+
+    existing = _conn.execute("SELECT COUNT(*) AS n FROM products").fetchone()
+
+    if existing["n"] > 0:
+        return
+
+    json_path = Path(__file__).resolve().parents[3] / "data" / "products.json"
+
+    if not json_path.exists():
+        return
+
+    import json
+
+    with open(json_path, encoding="utf-8") as f:
+        catalog = json.load(f)
+
+    seen_slugs: dict[str, int] = {}
+
+    with write_lock:
+        for product in catalog.get("products", []):
+            base_slug = product["id"]
+            count = seen_slugs.get(base_slug, 0)
+            slug = base_slug if count == 0 else f"{base_slug}-{count + 1}"
+            seen_slugs[base_slug] = count + 1
+
+            _conn.execute(
+                """
+                INSERT INTO products
+                (slug, name, brand, category, subcategory, grade, sizes, packaging, applications)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(slug) DO NOTHING
+                """,
+                (
+                    slug,
+                    product["name"],
+                    product.get("brand"),
+                    product.get("category"),
+                    product.get("subcategory"),
+                    product.get("grade") if isinstance(product.get("grade"), str) else None,
+                    ",".join(product.get("sizes") or []),
+                    ",".join(product.get("packing") or []),
+                    ",".join(product.get("applications") or []),
+                ),
+            )
+
+        _conn.commit()
+
+
 def init_db() -> None:
     with write_lock:
         _conn.executescript(SCHEMA)
+        _conn.commit()
+
+    _migrate_users_role_constraint()
+    _migrate_quotations_columns()
+    _migrate_sessions_columns()
+    _migrate_messages_role()
+    _migrate_messages_columns()
+    _migrate_users_last_login()
+    _migrate_backfill_customers()
+    _migrate_seed_products()
+
+def _migrate_messages_role() -> None:
+    row = _conn.execute(
+        """
+        SELECT sql
+        FROM sqlite_master
+        WHERE type='table'
+        AND name='messages'
+        """
+    ).fetchone()
+
+    if row is None:
+        return
+
+    # Already migrated
+    if "CHECK" not in row["sql"]:
+        return
+
+    with write_lock:
+        _conn.executescript(
+            """
+            ALTER TABLE messages
+            RENAME TO messages_old;
+
+            CREATE TABLE messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL
+                    REFERENCES sessions(id)
+                    ON DELETE CASCADE,
+
+                role TEXT NOT NULL,
+
+                content TEXT NOT NULL,
+
+                sources TEXT,
+
+                created_at TEXT NOT NULL DEFAULT (
+                    STRFTIME('%Y-%m-%dT%H:%M:%fZ','now')
+                )
+            );
+
+            INSERT INTO messages
+            (
+                id,
+                session_id,
+                role,
+                content,
+                sources,
+                created_at
+            )
+            SELECT
+                id,
+                session_id,
+                role,
+                content,
+                sources,
+                created_at
+            FROM messages_old;
+
+            DROP TABLE messages_old;
+
+            CREATE INDEX idx_messages_session_created
+            ON messages(session_id, created_at);
+            """
+        )
+
         _conn.commit()

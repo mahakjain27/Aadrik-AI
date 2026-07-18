@@ -1,8 +1,9 @@
 
-import { useEffect, useMemo, useState } from "react";
-import { Table, Spinner } from "react-bootstrap";
+import { useEffect, useRef, useState } from "react";
+import { Table, Spinner, Modal, Form, Button, Alert, Badge } from "react-bootstrap";
 import LeadDetailsModal from "../components/LeadDetailsModal";
-import { scoreLeads } from "../utils/leadScoring";
+import AIInsights from "./AIInsights";
+import { useAuth } from "../context/AuthContext";
 import {
   FaUsers,
   FaClock,
@@ -15,6 +16,7 @@ import {
   FaFilePdf,
   FaEnvelope,
   FaPrint,
+  FaUserTag,
 } from "react-icons/fa";
 
 
@@ -23,7 +25,20 @@ import {
   getLeads,
   updateLeadStatus,
   deleteLead,
+  archiveLead,
+  unarchiveLead,
+  downloadQuotationPdf,
+  getAssignees,
+  assignLead,
+  sendQuotation,
 } from "../services/api";
+
+const APPROVAL_BADGE = {
+  Draft: "secondary",
+  "Pending Approval": "warning",
+  Approved: "success",
+  Rejected: "danger",
+};
 
 function getQuoteNumber(lead) {
   const year = new Date(lead.created_at).getFullYear();
@@ -149,13 +164,88 @@ function StatCard({ label, value, Icon, color, active, onClick }) {
   );
 }
 
-export default function CRMDashboard({ initialSearch = "" }) {
+function AssignLeadModal({ lead, assignees, onClose, onAssigned }) {
+  const [selected, setSelected] = useState("");
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (lead) {
+      setSelected(lead.assigned_to ? String(lead.assigned_to) : "");
+      setError(null);
+      setSubmitting(false);
+    }
+  }, [lead]);
+
+  if (!lead) return null;
+
+  async function handleSubmit() {
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      await assignLead(lead.id, selected ? Number(selected) : null);
+      onAssigned();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not assign lead.");
+    }
+
+    setSubmitting(false);
+  }
+
+  return (
+    <Modal show={!!lead} onHide={onClose} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Assign Lead — {lead.company_name}</Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+        {error && <Alert variant="danger">{error}</Alert>}
+
+        <Form.Group>
+          <Form.Label>Assigned To</Form.Label>
+          <Form.Select
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+          >
+            <option value="">Unassigned</option>
+            {assignees.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name} ({u.role})
+              </option>
+            ))}
+          </Form.Select>
+        </Form.Group>
+      </Modal.Body>
+
+      <Modal.Footer>
+        <Button variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button variant="primary" disabled={submitting} onClick={handleSubmit}>
+          {submitting ? "Saving..." : "Save"}
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+}
+
+export default function CRMDashboard({ pendingQuotationId, onConsumePending }) {
+  const { user } = useAuth();
+  const canAssign = user?.role === "admin" || user?.role === "manager";
+  const [assignees, setAssignees] = useState([]);
+  const [assigningLead, setAssigningLead] = useState(null);
   const [loading, setLoading] = useState(true);
   const [leads, setLeads] = useState([]);
-  const [search,setSearch]=useState(initialSearch);
+  const [search,setSearch]=useState("");
   const [activeFilter,setActiveFilter]=useState("All");
+  const [yearFilter, setYearFilter] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+  const [yearOptions, setYearOptions] = useState([]);
   const [selectedLead, setSelectedLead] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const tableRef = useRef(null);
   const totalLeads = leads.length;
 
   const pending = leads.filter(
@@ -178,9 +268,7 @@ export default function CRMDashboard({ initialSearch = "" }) {
     (l) => l.status === "Lost"
   ).length;
 
-  const scoredLeads = useMemo(() => scoreLeads(leads), [leads]);
-
-  const filteredLeads = scoredLeads.filter((lead) => {
+  const filteredLeads = leads.filter((lead) => {
   const query = search.toLowerCase();
 
   const matchesSearch =
@@ -188,7 +276,9 @@ export default function CRMDashboard({ initialSearch = "" }) {
     lead.company_name.toLowerCase().includes(query) ||
     lead.product_name.toLowerCase().includes(query) ||
     lead.phone.toLowerCase().includes(query) ||
-    (lead.contact_person || "").toLowerCase().includes(query);
+    (lead.contact_person || "").toLowerCase().includes(query) ||
+    (lead.created_by_name || "").toLowerCase().includes(query) ||
+    (lead.assigned_to_name || "").toLowerCase().includes(query);
 
   const matchesStatus =
     activeFilter === "All" ||
@@ -199,7 +289,10 @@ export default function CRMDashboard({ initialSearch = "" }) {
   
   async function loadLeads() {
     try {
-      const data = await getLeads();
+      const data = await getLeads(
+        yearFilter ? Number(yearFilter) : undefined,
+        showArchived
+      );
       setLeads(data);
     } finally {
       setLoading(false);
@@ -208,7 +301,37 @@ export default function CRMDashboard({ initialSearch = "" }) {
 
   useEffect(() => {
     loadLeads();
-  }, []);
+  }, [yearFilter, showArchived]);
+
+  useEffect(() => {
+    // Pulled once, independent of the year/archived filters above, so the
+    // dropdown always lists every year that has ever had a quotation
+    // rather than collapsing to whatever the current filter returns.
+    getLeads(undefined, true)
+      .then((all) => {
+        const years = [...new Set(all.map((l) => new Date(l.created_at).getFullYear()))];
+        setYearOptions(years.sort((a, b) => b - a));
+      })
+      .catch(() => {});
+
+    if (canAssign) {
+      getAssignees()
+        .then(setAssignees)
+        .catch(() => {});
+    }
+  }, [canAssign]);
+
+  useEffect(() => {
+    if (!pendingQuotationId || leads.length === 0) return;
+
+    const lead = leads.find((l) => l.id === pendingQuotationId);
+
+    if (lead) {
+      setSelectedLead(lead);
+      setShowDetails(true);
+      onConsumePending?.();
+    }
+  }, [pendingQuotationId, leads]);
 
   if (loading)
     return (
@@ -235,7 +358,7 @@ export default function CRMDashboard({ initialSearch = "" }) {
 
       <div className="row mb-4 align-items-center g-2">
 
-        <div className="col-md-6">
+        <div className="col-md-5">
           <input
             className="form-control"
             placeholder="🔍 Search Quote No, Company, Product..."
@@ -244,7 +367,35 @@ export default function CRMDashboard({ initialSearch = "" }) {
           />
         </div>
 
-        <div className="col-md-6 text-md-end">
+        <div className="col-md-3">
+          <select
+            className="form-select"
+            value={yearFilter}
+            onChange={(e) => setYearFilter(e.target.value)}
+          >
+            <option value="">All Years</option>
+            {yearOptions.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="col-md-2 form-check d-flex align-items-center">
+          <input
+            type="checkbox"
+            className="form-check-input me-2"
+            id="show-archived"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+          />
+          <label className="form-check-label" htmlFor="show-archived">
+            Show Archived
+          </label>
+        </div>
+
+        <div className="col-md-2 text-md-end">
           <span style={{ color: "#52514e", fontSize: "13px", fontWeight: 600 }}>
             Showing
           </span>
@@ -276,7 +427,17 @@ export default function CRMDashboard({ initialSearch = "" }) {
         ))}
       </div>
 
+      <AIInsights
+        leads={leads}
+        onOpenCRM={(company) => {
+          setActiveFilter("All");
+          setSearch(company || "");
+          tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      />
+
       <div
+        ref={tableRef}
         style={{
           background: "#ffffff",
           border: "1px solid rgba(11,11,11,0.08)",
@@ -302,6 +463,7 @@ export default function CRMDashboard({ initialSearch = "" }) {
                 <th>Quantity</th>
                 <th>City</th>
                 <th>Status</th>
+                <th>Approval</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -312,16 +474,21 @@ export default function CRMDashboard({ initialSearch = "" }) {
 
                 <tr key={lead.id}>
 
-                  <td style={{ whiteSpace: "nowrap"}}><strong>{getQuoteNumber(lead)}</strong></td>
+                  <td style={{ whiteSpace: "nowrap"}}>
+                    <strong>{getQuoteNumber(lead)}</strong>
+                    {lead.is_archived ? (
+                      <Badge bg="dark" className="ms-2">Archived</Badge>
+                    ) : null}
+                  </td>
 
                   <td style ={{ minWidth: "200px"}}>{lead.company_name}</td>
 
                   <td>
                     <PriorityBadge
-                      priority={lead.aiPriority}
-                      score={lead.aiScore}
-                      reason={lead.aiReason}
-                      quantityUnit={lead.aiQuantityUnit}
+                      priority={lead.ai_priority}
+                      score={lead.ai_score}
+                      reason={lead.ai_reason}
+                      quantityUnit={lead.ai_quantity_unit}
                     />
                   </td>
 
@@ -361,6 +528,12 @@ export default function CRMDashboard({ initialSearch = "" }) {
   </select>
 </td>
 
+                  <td>
+                    <Badge bg={APPROVAL_BADGE[lead.approval_status] || "secondary"} pill>
+                      {lead.approval_status || "Draft"}
+                    </Badge>
+                  </td>
+
 <td>
 
 <Dropdown>
@@ -385,16 +558,54 @@ export default function CRMDashboard({ initialSearch = "" }) {
       View Details
     </Dropdown.Item>
 
+    {canAssign && (
+      <Dropdown.Item onClick={() => setAssigningLead(lead)}>
+        <FaUserTag className="me-2 text-info" />
+        {lead.assigned_to_name ? "Reassign" : "Assign"}
+      </Dropdown.Item>
+    )}
+
     <Dropdown.Item
-      onClick={() =>
-        window.open(
-          `http://127.0.0.1:8000/quotation/${lead.id}/pdf`,
-          "_blank"
-        )
-      }
+      onClick={async () => {
+        try {
+          const blob = await downloadQuotationPdf(lead.id);
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `${getQuoteNumber(lead)}.pdf`;
+          link.click();
+          URL.revokeObjectURL(url);
+        } catch {
+          alert("Unable to download PDF.");
+        }
+      }}
     >
       <FaFilePdf className="me-2 text-danger" />
       Download PDF
+    </Dropdown.Item>
+
+    <Dropdown.Item
+      onClick={async () => {
+        try {
+          if (lead.is_archived) {
+            await unarchiveLead(lead.id);
+          } else {
+            await archiveLead(lead.id);
+          }
+
+          setLeads((prev) =>
+            prev.map((item) =>
+              item.id === lead.id
+                ? { ...item, is_archived: item.is_archived ? 0 : 1 }
+                : item
+            )
+          );
+        } catch {
+          alert("Unable to update archive status.");
+        }
+      }}
+    >
+      📦 {lead.is_archived ? "Unarchive" : "Archive"}
     </Dropdown.Item>
 
     <Dropdown.Divider />
@@ -426,10 +637,23 @@ export default function CRMDashboard({ initialSearch = "" }) {
   🗑 Delete
 </Dropdown.Item>
 
-    <Dropdown.Item disabled>
+    <Dropdown.Item
+      disabled={lead.approval_status !== "Approved"}
+      onClick={async () => {
+        try {
+          const result = await sendQuotation(lead.id);
+          alert(result.message);
+          loadLeads();
+        } catch (err) {
+          alert(err.response?.data?.detail || "Unable to send quotation.");
+        }
+      }}
+    >
       <FaEnvelope className="me-2" />
-      Send Email
-      <small className="text-muted ms-2">(Coming Soon)</small>
+      Send Quotation
+      {lead.approval_status !== "Approved" && (
+        <small className="text-muted ms-2">(Needs approval)</small>
+      )}
     </Dropdown.Item>
 
     <Dropdown.Item disabled>
@@ -457,6 +681,14 @@ export default function CRMDashboard({ initialSearch = "" }) {
         show={showDetails}
         onClose={() => setShowDetails(false)}
         lead={selectedLead}
+        onUpdated={loadLeads}
+      />
+
+      <AssignLeadModal
+        lead={assigningLead}
+        assignees={assignees}
+        onClose={() => setAssigningLead(null)}
+        onAssigned={loadLeads}
       />
     </div>
   );

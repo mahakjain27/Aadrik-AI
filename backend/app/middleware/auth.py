@@ -1,42 +1,68 @@
-from fastapi import Header, HTTPException, status
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.core.config import settings
+from app.core.security import decode_access_token
+from app.database import queries
+
+security = HTTPBearer()
 
 
-def verify_api_key(x_api_key: str | None = Header(default=None)) -> None:
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """
-    Simple shared-secret auth. The frontend (or any client) must send:
-        x-api-key: <AADRIK_API_KEY>
-
-    If AADRIK_API_KEY is unset in .env, auth is skipped entirely and a
-    warning is printed at startup (see app/core/config.py) - this is
-    intentional so local dev isn't blocked, but it means: never deploy
-    without setting AADRIK_API_KEY.
+    Validate JWT token and return the authenticated user.
     """
-    if not settings.api_key:
-        return
 
-    if x_api_key != settings.api_key:
+    token = credentials.credentials
+
+    payload = decode_access_token(token)
+
+    if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or missing API key.",
+            detail="Invalid or expired token.",
         )
 
+    user_id = payload.get("sub")
 
-def get_user_id(x_user_id: str | None = Header(default=None)) -> str:
-    """
-    Every browser generates its own id (see frontend/src/utils/userId.js) and
-    sends it as:
-        x-user-id: <uuid>
-
-    Unlike verify_api_key, this is never optional - without it there is no
-    way to scope chat sessions to a browser, and silently falling back to a
-    shared id would merge every headerless caller's history together.
-    """
-    if not x_user_id:
+    if user_id is None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing x-user-id header.",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token.",
         )
 
-    return x_user_id
+    user = queries.get_user_by_id(int(user_id))
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+        )
+
+    if not user["is_active"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive.",
+        )
+
+    return user
+
+
+def require_roles(*allowed_roles: str):
+    """
+    Dependency factory: restricts an endpoint to the given roles.
+
+    Usage: current_user = Depends(require_roles("admin", "sales"))
+    """
+
+    def dependency(user=Depends(get_current_user)):
+        if user["role"] not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to access this resource.",
+            )
+
+        return user
+
+    return dependency

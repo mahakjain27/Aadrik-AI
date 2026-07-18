@@ -5,15 +5,35 @@ from openai import OpenAI
 from app.core.config import settings
 from app.core.logging import setup_logger
 from app.database import queries
+from app.database.queries import update_session_status
 from app.rag.retriever import retrieve
 from app.services.session_service import resolve_session
 
-client = OpenAI(
-    base_url=settings.lm_studio_base_url,
-    api_key="lm-studio",  # LM Studio ignores this value, but the SDK requires something non-empty
-)
+from functools import lru_cache
+
+@lru_cache
+def get_client():
+    return OpenAI(
+        api_key=settings.openai_api_key,
+        base_url=settings.openai_base_url,
+    )
+
+client = get_client()
 
 logger = setup_logger(__name__)
+
+AI_FALLBACK = "I don't have that information in the company knowledge base."
+
+QUOTATION_PROMPT = (
+    "I'd be happy to help with your quotation request.\n\n"
+    'Please click "Request Quotation", or share the following details:\n'
+    "- Company Name\n"
+    "- Contact Person\n"
+    "- Phone Number\n"
+    "- Quantity Required\n"
+    "- Delivery City\n\n"
+    "Our sales team will prepare and share the quotation with you."
+)
 
 SYSTEM_PROMPT_TEMPLATE = """You are Aadrik AI.
 
@@ -26,35 +46,40 @@ Rules:
 1. Never invent information.
 2. If the answer exists in the company knowledge, answer clearly.
 3. If only partial information exists, answer using only those facts.
-4. If the answer cannot be found, reply exactly:
+4. The supplied company knowledge is retrieved by similarity search and
+   may include chunks that are only superficially related (e.g. other
+   welding products) but do NOT actually name the specific product,
+   material, or brand the user asked about. Do not treat a superficially
+   similar chunk as confirmation that the exact thing asked about is
+   available. If the specific product/material/brand is not explicitly
+   named in the company knowledge, that counts as "cannot be found."
+5. If the answer cannot be found, reply exactly:
 
 I don't have that information in the company knowledge base.
 
-5. Keep answers concise and professional.
-6. Use bullet points whenever appropriate.
-7. Never mention the internal context or retrieved documents.
+6. Keep answers concise and professional.
+7. Use bullet points whenever appropriate.
+8. Never mention the internal context or retrieved documents.
 
 Pricing and quotations:
 
-8. You must NEVER state, estimate, calculate, or imply a price, rate, or
+9. You must NEVER state, estimate, calculate, or imply a price, rate, or
    placeholder price (e.g. "₹ [Insert Price]") for any product, even if a
    price appears in the company knowledge.
-9. You must NEVER ask the user for quantity, budget, or other pricing
-   details in chat, and you must NEVER prepare or simulate a quotation
-   yourself.
-10. If the user asks for a price, rate, or quotation (e.g. "I want
-    quotation", "need quote", "rate for X"), reply exactly with:
+10. You must NEVER ask the user for quantity, budget, or other pricing
+    details in chat, and you must NEVER prepare or simulate a quotation
+    yourself.
+11. A question about whether a product exists, is manufactured, is
+    carried/stocked, or its specifications (e.g. "do you manufacture
+    X", "do you have X", "what sizes does X come in") is a product
+    question, NOT a quotation request. Answer it from the company
+    knowledge using rules 1-5 above, even if the answer is that the
+    product isn't in the catalogue.
+12. Only if the user asks for a price, rate, or quotation (e.g. "I want
+    quotation", "need quote", "rate for X", "how much does X cost"),
+    reply exactly with:
 
-I'd be happy to help with your quotation request.
-
-Please click "Request Quotation", or share the following details:
-- Company Name
-- Contact Person
-- Phone Number
-- Quantity Required
-- Delivery City
-
-Our sales team will prepare and share the quotation with you.
+{quotation_prompt}
 
 Company Knowledge:
 
@@ -73,6 +98,18 @@ def ask_ai(message: str, session_id: str | None, user_id: str) -> dict:
     # fails, the question isn't lost from the session's history.
     queries.insert_message(session_id, "user", message)
 
+    return generate_ai_reply(session_id, message, history)
+
+
+def generate_ai_reply(session_id: str, message: str, history: list) -> dict:
+    """Generates and persists the assistant's reply for a message that the
+    caller has already inserted into `session_id`. `history` must be the
+    session's prior messages fetched BEFORE that insert (so it isn't
+    duplicated - this function appends `message` itself when building the
+    prompt). Shared by the internal AI Chat page and the WhatsApp webhook,
+    so channel-specific concerns (session resolution, persisting the
+    inbound message with its own metadata) stay with each caller."""
+
     # ---------------- Retrieval ----------------
 
     try:
@@ -86,9 +123,7 @@ def ask_ai(message: str, session_id: str | None, user_id: str) -> dict:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=(
-                "Knowledge base is unavailable right now. "
-                "Make sure LM Studio is running and the vector store has "
-                "been built (python build_rag.py)."
+                "The knowledge base is unavailable. Please rebuild the vector store and try again."
             ),
         ) from exc
 
@@ -103,7 +138,10 @@ def ask_ai(message: str, session_id: str | None, user_id: str) -> dict:
         if source not in sources:
             sources.append(source)
 
-    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(company_knowledge=company_knowledge)
+    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
+        company_knowledge=company_knowledge,
+        quotation_prompt=QUOTATION_PROMPT,
+    )
 
     # ---------------- Conversation Memory ----------------
 
@@ -132,16 +170,16 @@ def ask_ai(message: str, session_id: str | None, user_id: str) -> dict:
     # ---------------- Chat Completion ----------------
 
     try:
-        logger.info("Sending request to LM Studio")
+        logger.info("Sending request to OpenAI")
         response = client.chat.completions.create(
-            model=settings.lm_studio_chat_model,
+            model=settings.chat_model,
             temperature=0.2,
             messages=messages,
         )
-        logger.info("Received response from LM Studio")
+        logger.info("Received response from OpenAI")
 
     except openai.APITimeoutError as exc:
-        logger.exception("LM Studio request timed out")
+        logger.exception("OpenAI request timed out")
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="The AI service timed out. Please try again.",
@@ -152,9 +190,9 @@ def ask_ai(message: str, session_id: str | None, user_id: str) -> dict:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=(
-                "Could not reach LM Studio. "
-                f"Make sure it is running on {settings.lm_studio_base_url} "
-                f"with {settings.lm_studio_chat_model} loaded."
+                "Could not reach OpenAI. "
+                f"please check your OpenAI API key and internet connection."
+                
             ),
         ) from exc
 
@@ -164,12 +202,32 @@ def ask_ai(message: str, session_id: str | None, user_id: str) -> dict:
             detail=f"AI service returned an error (status {exc.status_code}).",
         ) from exc
 
-    reply_text = response.choices[0].message.content
+    reply_text = response.choices[0].message.content.strip()
 
-    queries.insert_message(session_id, "assistant", reply_text, sources)
+    queries.insert_message(
+        session_id,
+        "assistant",
+        reply_text,
+        sources,
+    )
+
+    # Update conversation status
+    if reply_text == AI_FALLBACK:
+        update_session_status(
+            session_id,
+            "Waiting for Sales",
+        )
+    else:
+        update_session_status(
+            session_id,
+            "AI Handling",
+        )
+
     queries.touch_session(session_id)
 
-    logger.info(f"AI request completed successfully | session_id={session_id}")
+    logger.info(
+        f"AI request completed successfully | session_id={session_id}"
+    )
 
     return {
         "reply": reply_text,

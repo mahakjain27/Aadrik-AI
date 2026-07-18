@@ -537,12 +537,12 @@
       ]
     },
       {
-      "id": "rasi-ss-tig",
-      "category": "TIG Filler Rods",
+      "id": "rasi-mig-co2-wire",
+      "category": "MIG / MAG Welding Wire",
       "subcategory": null,
       "name": "Rasi CO2 MIG Wire (ER70S2)",
       "brand": "RASI ER70S2",
-      "grade":null,
+      "grade": "ER70S2",
       "sizes": [
         "1.60 mm",
         "2.00 mm",
@@ -551,9 +551,10 @@
       ],
       "packing": [],
       "applications": [
-        "TIG Welding",
-        "Stainless Steel Welding",
-        "Precision Fabrication"
+        "CO2 Welding",
+        "MIG Welding",
+        "Fabrication",
+        "Automobile Industry"
       ]
     },
     {

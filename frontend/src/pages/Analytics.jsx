@@ -1,8 +1,78 @@
 import { useEffect, useState } from "react";
 import { Spinner } from "react-bootstrap";
-import { getLeads } from "../services/api";
+import { getLeads, downloadMonthlyReport } from "../services/api";
 import AnalyticsCharts, { INK } from "../components/AnalyticsCharts";
-import AIInsights from "../pages/AIInsights";
+import { useAuth } from "../context/AuthContext";
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function MonthlyReportButton() {
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [downloading, setDownloading] = useState(false);
+
+  const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
+
+  async function handleDownload() {
+    setDownloading(true);
+
+    try {
+      const blob = await downloadMonthlyReport(year, month);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Aadrik-Monthly-Report-${year}-${String(month).padStart(2, "0")}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Unable to generate the monthly report.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  return (
+    <div className="d-flex align-items-center gap-2">
+      <select
+        className="form-select form-select-sm"
+        style={{ width: "130px" }}
+        value={month}
+        onChange={(e) => setMonth(Number(e.target.value))}
+      >
+        {MONTH_NAMES.map((name, i) => (
+          <option key={name} value={i + 1}>
+            {name}
+          </option>
+        ))}
+      </select>
+
+      <select
+        className="form-select form-select-sm"
+        style={{ width: "100px" }}
+        value={year}
+        onChange={(e) => setYear(Number(e.target.value))}
+      >
+        {years.map((y) => (
+          <option key={y} value={y}>
+            {y}
+          </option>
+        ))}
+      </select>
+
+      <button
+        className="btn btn-sm btn-primary text-nowrap"
+        onClick={handleDownload}
+        disabled={downloading}
+      >
+        {downloading ? "Generating..." : "📥 Download Monthly Report"}
+      </button>
+    </div>
+  );
+}
 
 function KpiTile({ label, value }) {
   return (
@@ -27,7 +97,9 @@ function KpiTile({ label, value }) {
   );
 }
 
-export default function Analytics({ onOpenCRM }) {
+export default function Analytics() {
+  const { user } = useAuth();
+  const canDownloadReport = user?.role === "admin" || user?.role === "manager";
   const [loading, setLoading] = useState(true);
   const [leads, setLeads] = useState([]);
 
@@ -60,9 +132,13 @@ export default function Analytics({ onOpenCRM }) {
 
   return (
     <div className="container-fluid mt-4" style={{ paddingBottom: "32px" }}>
-      <h2 className="mb-4" style={{ fontWeight: 700, color: INK.primary }}>
-        Sales Analytics
-      </h2>
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2 className="mb-0" style={{ fontWeight: 700, color: INK.primary }}>
+          Sales Analytics
+        </h2>
+
+        {canDownloadReport && <MonthlyReportButton />}
+      </div>
 
       <div className="row g-3 mb-1">
         <KpiTile label="Total leads" value={totalLeads} />
@@ -70,8 +146,6 @@ export default function Analytics({ onOpenCRM }) {
         <KpiTile label="Lost" value={lost} />
         <KpiTile label="Win rate" value={`${winRate}%`} />
       </div>
-
-      <AIInsights leads={leads} onOpenCRM={onOpenCRM} />
 
       <AnalyticsCharts leads={leads} />
     </div>

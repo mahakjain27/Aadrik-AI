@@ -1,259 +1,316 @@
-# Aadrik Distributors Pvt. Ltd.
+# Products
 
-# Product Catalogue
+## MIG / MAG Welding Wire
 
-This document contains the list of products supplied by Aadrik Distributors Pvt. Ltd. The AI Assistant should use this information to answer customer queries regarding product availability, sizes, and categories.
+### Rasi CO2 MIG Wire (ER70S-6)
 
----
+Brand: RASI co2 wire
+Grade: ER70S-6
+Available sizes: 0.80 mm,1.00 mm,1.20 mm,0.80 mm (12.5 kg Spool)
+Stock status: In Stock
+Applications: CO2 Welding,MIG Welding,Fabrication,Automobile Industry
 
-# Welding Electrodes
+### Rasi CO2 MIG Wire (ER70S2)
 
-## Rasi E6013 / MS Electrodes
+Brand: RASI ER70S2
+Grade: ER70S2
+Available sizes: 1.60 mm,2.00 mm,2.40 mm,3.20 mm
+Stock status: In Stock
+Applications: CO2 Welding,MIG Welding,Fabrication,Automobile Industry
 
-Brand: **RASI**
+### Rasi SS MIG Wire
 
-Available Sizes:
+Brand: RASI SS MIG wire
+Available sizes: 0.80 mm,1.20 mm
+Stock status: In Stock
+Applications: MIG Welding,Stainless Steel Fabrication,Food Processing Equipment,Chemical Industry
 
-- 2.00 mm
-- 2.50 mm
-- 3.15 mm
-- 4.00 mm
-- 5.00 mm
+### Rasi SS MIG Wire
 
-Applications:
+Brand: RASI SS MIG wire
+Grade: 304
+Available sizes: 0.80 mm,1.20 mm
+Stock status: In Stock
+Applications: MIG Welding,Stainless Steel Fabrication,Food Processing Equipment,Chemical Industry
 
-- General fabrication
-- Mild steel welding
-- Structural welding
-- Repair and maintenance work
+### Rasi SS MIG Wire
 
----
+Brand: RASI SS MIG wire
+Grade: 308
+Available sizes: 0.80 mm,1.20 mm
+Stock status: In Stock
+Applications: MIG Welding,Stainless Steel Fabrication,Food Processing Equipment,Chemical Industry
 
-## Rasi 7018 LH Electrodes
+### Rasi SS MIG Wire
 
-Brand: **RASI**
+Brand: RASI SS MIG wire
+Grade: 309
+Available sizes: 0.80 mm,1.20 mm
+Stock status: In Stock
+Applications: MIG Welding,Stainless Steel Fabrication,Food Processing Equipment,Chemical Industry
 
-Available Sizes:
-- 4.00 mm
-- 5.00 mm
-- 2.50 mm
-- 3.15 × 450 mm
-- 4.00 × 450 mm
+### Rasi SS MIG Wire
 
-Applications:
+Brand: RASI SS MIG wire
+Grade: 316
+Available sizes: 0.80 mm,1.20 mm
+Stock status: In Stock
+Applications: MIG Welding,Stainless Steel Fabrication,Food Processing Equipment,Chemical Industry
 
-- Heavy fabrication
-- Pressure vessels
-- Structural steel
-- High-strength welding
+### Superon SS MIG Wire
 
----
+Brand: SUPERON SS MIG wire
+Grade: 304
+Available sizes: 0.80 mm,1.20 mm
+Stock status: In Stock
+Applications: MIG Welding,Stainless Steel Fabrication,Food Processing Equipment,Chemical Industry
 
-# MIG / MAG (CO₂) Welding Wire
+### Superon SS MIG Wire
 
-Brand: **RASI**
+Brand: SUPERON SS MIG wire
+Grade: 308
+Available sizes: 0.80 mm,1.20 mm
+Stock status: In Stock
+Applications: MIG Welding,Stainless Steel Fabrication,Food Processing Equipment,Chemical Industry
 
-Available Sizes:
+### Superon SS MIG Wire
 
-- 0.80 mm
-- 1.00 mm
-- 1.20 mm
-- 0.80 mm (12.5 kg Spool)
+Brand: SUPERON SS MIG wire
+Grade: 309
+Available sizes: 0.80 mm,1.20 mm
+Stock status: In Stock
+Applications: MIG Welding,Stainless Steel Fabrication,Food Processing Equipment,Chemical Industry
 
+### Superon SS MIG Wire
 
-Applications:
+Brand: SUPERON SS MIG wire
+Grade: 316
+Available sizes: 0.80 mm,1.20 mm
+Stock status: In Stock
+Applications: MIG Welding,Stainless Steel Fabrication,Food Processing Equipment,Chemical Industry
 
-- CO₂ Welding
-- MIG Welding
-- Fabrication
-- Automobile Industry
+### Superon SS MIG Wire
 
----
+Brand: SUPERON SS MIG wire
+Grade: 316E
+Available sizes: 0.80 mm,1.20 mm
+Stock status: In Stock
+Applications: MIG Welding,Stainless Steel Fabrication,Food Processing Equipment,Chemical Industry
 
-# Metal Cut Wire
+## Primers
 
-## Rasi Metal Cut
+### Red Oxide Primer
 
-Brand: **RASI**
+Packaging: 1 Litre,4 Litres,20 Litres
+Stock status: In Stock
+Applications: Metal surface protection,Corrosion resistance,Industrial painting
 
-Available Size:
+## TIG Filler Rods
 
-- 4.00 × 450 mm
+### Rasi SS TIG Filler Rods
 
----
+Brand: RASI SS TIG
+Grade: 304
+Available sizes: 1.60 mm,2.00 mm,2.40 mm,3.20 mm
+Stock status: In Stock
+Applications: TIG Welding,Stainless Steel Welding,Precision Fabrication
 
-# Orbit Welding Electrodes
+### Rasi SS TIG Filler Rods
 
-Brand: **ORBIT**
+Brand: RASI SS TIG
+Grade: 308
+Available sizes: 1.60 mm,2.00 mm,2.40 mm,3.20 mm
+Stock status: In Stock
+Applications: TIG Welding,Stainless Steel Welding,Precision Fabrication
 
-Available Sizes:
+### Rasi SS TIG Filler Rods
 
-- 3.15 mm
-- 4.00 mm
+Brand: RASI SS TIG
+Grade: 309
+Available sizes: 1.60 mm,2.00 mm,2.40 mm,3.20 mm
+Stock status: In Stock
+Applications: TIG Welding,Stainless Steel Welding,Precision Fabrication
 
----
+### Rasi SS TIG Filler Rods
 
-# Ador Welding Electrodes
+Brand: RASI SS TIG
+Grade: 316
+Available sizes: 1.60 mm,2.00 mm,2.40 mm,3.20 mm
+Stock status: In Stock
+Applications: TIG Welding,Stainless Steel Welding,Precision Fabrication
 
-## Ador Superbase
+### Superon SS TIG Filler Rods
 
-Brand: **ADOR**
+Brand: SUPERON SS TIG
+Grade: 304
+Available sizes: 1.60 mm,2.00 mm,2.40 mm,3.20 mm
+Stock status: In Stock
+Applications: TIG Welding,Stainless Steel Welding,Precision Fabrication
 
-Available Sizes:
+### Superon SS TIG Filler Rods
 
-- 3.15 mm
-- 4.00 mm
+Brand: SUPERON SS TIG
+Grade: 308
+Available sizes: 1.60 mm,2.00 mm,2.40 mm,3.20 mm
+Stock status: In Stock
+Applications: TIG Welding,Stainless Steel Welding,Precision Fabrication
 
----
- 
-# ESAB Welding Electrodes
+### Superon SS TIG Filler Rods
 
-Brand: **ESAB**
+Brand: SUPERON SS TIG
+Grade: 309
+Available sizes: 1.60 mm,2.00 mm,2.40 mm,3.20 mm
+Stock status: In Stock
+Applications: TIG Welding,Stainless Steel Welding,Precision Fabrication
 
-Product:
+### Superon SS TIG Filler Rods
 
-### ESAB Xpert
+Brand: SUPERON SS TIG
+Grade: 316
+Available sizes: 1.60 mm,2.00 mm,2.40 mm,3.20 mm
+Stock status: In Stock
+Applications: TIG Welding,Stainless Steel Welding,Precision Fabrication
 
-Available Sizes:
+### Superon SS TIG Filler Rods
 
-- 3.15 mm
-- 4.00 mm
+Brand: SUPERON SS TIG
+Grade: 316E
+Available sizes: 1.60 mm,2.00 mm,2.40 mm,3.20 mm
+Stock status: In Stock
+Applications: TIG Welding,Stainless Steel Welding,Precision Fabrication
 
----
+## Welding Electrodes
 
-# Stainless Steel Welding Electrodes
+### Ador Kingbond E6013 / MS Electrodes
 
-## Superon Stainless Steel Electrodes
+Brand: ADOR kingbond
+Grade: E6013
+Available sizes: 3.15 mm,4.00 mm,5.00 mm
+Stock status: In Stock
+Applications: General fabrication,Mild steel welding,Structural welding,Repair and maintenance work
 
-Brand: **SUPERON**
+### Ador Supabase 7018 LH Electrodes
 
-### Grade 308
+Brand: ADOR supabase
+Grade: 7018 LH
+Available sizes: 2.50 mm,3.15 mm,4.00 mm,5.00 mm
+Stock status: In Stock
+Applications: Heavy fabrication,Pressure vessels,Structural steel,High-strength welding
 
-Available Sizes:
+### ESAB Ferroamb E6013 / MS Electrodes
 
-- 2.50 mm
-- 3.15 mm
-- 4.00 mm
+Brand: ESAB Ferroamb
+Grade: E6013
+Available sizes: 2.50 mm,3.15 mm,4.00 mm
+Stock status: In Stock
+Applications: General fabrication,Mild steel welding,Structural welding,Repair and maintenance work
 
----
+### ESAB Xpert 7018 LH Electrodes
 
-### Grade 309
+Brand: ESAB xpert
+Grade: 7018 LH
+Available sizes: 2.50 mm,3.15 mm,4.00 mm
+Stock status: In Stock
+Applications: Heavy fabrication,Pressure vessels,Structural steel,High-strength welding
 
-Available Sizes:
+### Orbit E6013 / MS Electrodes
 
-- 2.50 mm
-- 3.15 mm
-- 4.00 mm
+Brand: ORBIT
+Grade: E6013
+Available sizes: 3.15 mm,4.00 mm
+Stock status: In Stock
+Applications: General fabrication,Mild steel welding,Structural welding,Repair and maintenance work
 
----
+### Rasi 7018 LH Electrodes
 
-### Grade 316
+Brand: RASI 
+Grade: 7018 LH
+Available sizes: 2.50 mm,4.00 mm,5.00 mm,3.15 x 450 mm,3.15 x 350 mm
+Stock status: In Stock
+Applications: Heavy fabrication,Pressure vessels,Structural steel,High-strength welding
 
-Available Sizes:
+### Rasi Cast Iron Electrodes
 
-- 2.50 mm
-- 3.15 mm
-- 4.00 mm
+Brand: RASI (CINM / CIFN)
+Available sizes: 3.15 x 350 mm
+Stock status: In Stock
+Applications: Cast iron repair,Maintenance welding,Machinery repair
 
-Applications:
+### Rasi E6013 / MS Electrodes
 
-- Stainless steel fabrication
-- Food processing equipment
-- Chemical industry
-- Pharmaceutical industry
+Brand: RASI
+Grade: E6013
+Available sizes: 2.00 mm,2.50 mm,3.15 mm,4.00 mm,5.00 mm
+Stock status: In Stock
+Applications: General fabrication,Mild steel welding,Structural welding,Repair and maintenance work
 
----
+### Rasi Metal Cut Electrodes
 
-# TIG Filler Rods
+Brand: RASI
+Available sizes: 3.15 x 450 mm,4.00 x 450 mm
+Stock status: In Stock
+Applications: Metal cutting,Gouging,Piercing
 
-## Superon STIG 304
+### Rasi Stainless Steel Electrodes
 
-Brand: **SUPERON**
+Brand: RASI
+Grade: 308
+Available sizes: 2.50 mm,3.15 mm,4.00 mm
+Stock status: In Stock
+Applications: Stainless steel fabrication,Food processing equipment,Chemical industry,Pharmaceutical industry
 
-Available Sizes:
+### Rasi Stainless Steel Electrodes
 
-- 1.60 mm
-- 2.00 mm
-- 2.40 mm
+Brand: RASI
+Grade: 309
+Available sizes: 2.50 mm,3.15 mm,4.00 mm
+Stock status: In Stock
+Applications: Dissimilar metal welding,Stainless steel fabrication
 
-Applications:
+### Super 6 E6013 / MS Electrodes
 
-- TIG Welding
-- Stainless Steel Welding
-- Precision Fabrication
+Brand: SUPER 6
+Grade: E6013
+Available sizes: 3.15 mm,4.00 mm
+Stock status: In Stock
+Applications: General fabrication,Mild steel welding,Structural welding,Repair and maintenance work
 
----
+### Superon Cast Iron Electrodes
 
-# Cast Iron Electrodes
+Brand: SUPERON(AC55)
+Grade: AC55
+Available sizes: 3.15 x 350 mm
+Stock status: In Stock
+Applications: Cast iron repair,Maintenance welding,Machinery repair
 
-## Super 6
+### Superon Stainless Steel Electrodes
 
-Available Sizes:
+Brand: SUPERON
+Grade: 308
+Available sizes: 2.00 mm,2.50 mm,3.15 mm,4.00 mm
+Stock status: In Stock
+Applications: Stainless steel fabrication,Food processing equipment,Chemical industry,Pharmaceutical industry
 
-- 3.15 mm
-- 4.00 mm
+### Superon Stainless Steel Electrodes
 
-Applications:
+Brand: SUPERON
+Grade: 309
+Available sizes: 2.50 mm,3.15 mm,4.00 mm
+Stock status: In Stock
+Applications: Dissimilar metal welding,Stainless steel fabrication
 
-- Cast iron repair
-- Maintenance welding
-- Machinery repair
+### Superon Stainless Steel Electrodes
 
----
+Brand: SUPERON
+Grade: 310
+Available sizes: 3.15 mm,4.00 mm
+Stock status: In Stock
+Applications: High-temperature applications,Furnace parts,Heat-resistant fabrication
 
-# Primers
+### Superon Stainless Steel Electrodes
 
-## Red Oxide Primer
-
-Available Packing:
-
-- 1 Litre
-- 4 Litres
-- 20 Litres
-
-Applications:
-
-- Metal surface protection
-- Corrosion resistance
-- Industrial painting
-
----
-
-# Brands Available
-
-Aadrik Distributors Pvt. Ltd. supplies products from the following brands:
-
-- RASI
-- SUPERON
-- ESAB
-- ADOR
-- ORBIT
-
----
-
-# Product Categories
-
-- Welding Electrodes
-- MIG / MAG Welding Wire
-- TIG Filler Rods
-- Stainless Steel Electrodes
-- Cast Iron Electrodes
-- Metal Cut Electrodes
-- Primers
-- Industrial Welding Consumables
-
----
-
-# AI Assistant Guidelines
-
-When customers ask about products:
-
-- Recommend products based on the welding application.
-- Inform customers about available sizes.
-- Suggest equivalent products if a requested size is unavailable.
-- Recommend stainless steel electrodes (308, 309, 316) for stainless steel welding.
-- Recommend E6013 for general-purpose welding.
-- Recommend 7018 LH for heavy-duty structural welding.
-- Recommend STIG 304 rods for TIG stainless steel applications.
-- Recommend Red Oxide Primer for corrosion protection before painting.
-- If stock availability is unknown, advise customers to contact the sales team for confirmation.
+Brand: SUPERON
+Grade: 316
+Available sizes: 2.50 mm,3.15 mm,4.00 mm
+Stock status: In Stock
+Applications: Stainless steel fabrication,Food processing equipment,Chemical industry,Pharmaceutical industry

@@ -19,8 +19,22 @@ langchain-text-splitters==1.1.2
 
 # Document loaders
 pypdf==6.14.2
+python-docx==1.2.0
 
-# NOTE: .docx loading (UnstructuredWordDocumentLoader in app/rag/loaders.py)
-# requires the `unstructured[docx]` package - not installed, adds heavy deps.
-# It already fails silently via try/except, so only add this if you actually
-# start putting Word docs in knowledge_base/.
+# File uploads (Knowledge Base Manager) - FastAPI's UploadFile/Form need this
+# to parse multipart/form-data; it's a peer dependency, not auto-installed.
+python-multipart==0.0.32
+
+# Quotation PDF generation (app/services/quotation_pdf.py) - Pillow is
+# needed for the JPEG logo embedded in the header.
+reportlab==5.0.0
+Pillow==12.3.0
+
+# Auth (password hashing + JWT) - see app/core/security.py
+# NOTE: bcrypt must stay <4.1 - passlib 1.7.4 reads bcrypt.__about__.__version__,
+# which was removed in bcrypt 4.1+, breaking hash_password() at runtime.
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-jose==3.5.0
+email-validator==2.3.0
+

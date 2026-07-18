@@ -14,6 +14,11 @@ import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Policies from "./pages/Policies";
 import Company from "./pages/Company";
+import UserManagement from "./pages/UserManagement";
+import ActivityLog from "./pages/ActivityLog";
+import ProductManagement from "./pages/ProductManagement";
+import KnowledgeBaseManager from "./pages/KnowledgeBaseManager";
+import SalesInbox from "./pages/SalesInbox";
 import {
   getProducts,
   getSessionMessages,
@@ -21,8 +26,16 @@ import {
   sendMessage,
   submitQuotation,
 } from "./services/api";
+import { useAuth } from "./context/AuthContext";
+import Login from "./pages/Login";
+import { canAccess, permissions } from "./utils/permissions";
+import logoWatermark from "./assets/logo-watermark.png";
 
 function App() {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) {
+    return <Login />;
+  }
   const [chat, setChat] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sessions, setSessions] = useState([]);
@@ -37,7 +50,18 @@ function App() {
   const [showDetails, setShowDetails] = useState(false);
   const [showQuotation, setShowQuotation] = useState(false);
   const [page, setPage] = useState("chat");
-  const [crmFocus, setCrmFocus] = useState("");
+  const [pendingSessionId, setPendingSessionId] = useState(null);
+  const [pendingQuotationId, setPendingQuotationId] = useState(null);
+
+  function openSessionInInbox(sessionId) {
+    setPendingSessionId(sessionId);
+    setPage("inbox");
+  }
+
+  function openQuotationInDashboard(quotationId) {
+    setPendingQuotationId(quotationId);
+    setPage("dashboard");
+  }
 
   async function refreshSessions() {
     try {
@@ -97,6 +121,8 @@ function App() {
   }
 
   async function openProducts() {
+    if (!canAccess(user?.role, "products")) return;
+
     setShowProducts(true);
 
     if (catalog) return;
@@ -151,6 +177,7 @@ function App() {
       delivery_city: formData.city,
       pincode: formData.pincode,
       gst_number: formData.gst_number,
+      notes: formData.notes,
     });
   }
 
@@ -177,6 +204,10 @@ function App() {
     }
   }
 
+  const effectivePage = canAccess(user?.role, page)
+    ? page
+    : permissions[user?.role]?.[0] || "chat";
+
   return (
     <div className="d-flex vh-100 bg-light">
       <Sidebar
@@ -186,14 +217,20 @@ function App() {
         onSelectSession={selectSession}
         onOpenProducts={openProducts}
         loading={loading}
-        activePage={page}
+        role={user?.role}
+        activePage={effectivePage}
         onOpenChat={() => setPage("chat")}
         onOpenCRM={() => setPage("dashboard")}
         onOpenAnalytics={() => setPage("analytics")}
         onOpenCustomers={() => setPage("customers")}
+        onOpenInbox={() => setPage("inbox")}
         onOpenPolicies={() => setPage("policies")}
         onOpenCompany={() => setPage("company")}
         onOpenSettings={() => setPage("settings")}
+        onOpenUsers={() => setPage("users")}
+        onOpenActivity={() => setPage("activity")}
+        onOpenProductAdmin={() => setPage("product_admin")}
+        onOpenKnowledgeAdmin={() => setPage("knowledge_admin")}
       />
 
       <ProductExplorer
@@ -222,10 +259,18 @@ function App() {
         onSubmit={handleQuotationSubmit}
       />
 
-      <div className="flex-grow-1 d-flex flex-column" style={{ minWidth: 0, overflowY: "auto" }}>
-        <Header onOpenCRM={() => setPage("dashboard")} />
+      <div className="flex-grow-1 d-flex flex-column app-content" style={{ minWidth: 0, overflowY: "auto" }}>
+        <div className="app-watermark" aria-hidden="true">
+          <img src={logoWatermark} alt="" />
+        </div>
 
-        {page === "chat" ? (
+        <Header
+          onOpenCRM={() => setPage("dashboard")}
+          onOpenSession={openSessionInInbox}
+          onOpenQuotation={openQuotationInDashboard}
+        />
+
+        {effectivePage === "chat" ? (
           <div className="container-fluid p-4 d-flex flex-column flex-grow-1">
             {chat.length === 0 && <SuggestedQuestions onSelect={ask} />}
 
@@ -235,21 +280,32 @@ function App() {
 
             <ChatInput onSend={ask} loading={loading} />
           </div>
-        ) : page === "dashboard" ? (
-          <CRMDashboard initialSearch={crmFocus} />
-        ) : page === "customers" ? (
-          <Customers />
-        ) : page === "analytics" ? (
-          <Analytics
-            onOpenCRM={(company) => {
-              setCrmFocus(company || "");
-              setPage("dashboard");
-            }}
+        ) : effectivePage === "dashboard" ? (
+          <CRMDashboard
+            pendingQuotationId={pendingQuotationId}
+            onConsumePending={() => setPendingQuotationId(null)}
           />
-        ) : page === "policies" ? (
+        ) : effectivePage === "customers" ? (
+          <Customers />
+        ) : effectivePage === "analytics" ? (
+          <Analytics />
+        ) : effectivePage === "policies" ? (
           <Policies />
-        ) : page === "company" ? (
+        ) : effectivePage === "company" ? (
           <Company />
+        ) : effectivePage === "users" ? (
+          <UserManagement />
+        ) : effectivePage === "activity" ? (
+          <ActivityLog />
+        ) : effectivePage === "product_admin" ? (
+          <ProductManagement />
+        ) : effectivePage === "knowledge_admin" ? (
+          <KnowledgeBaseManager />
+        ) : effectivePage === "inbox" ? (
+          <SalesInbox
+            pendingSessionId={pendingSessionId}
+            onConsumePending={() => setPendingSessionId(null)}
+          />
         ) : (
           <Settings />
         )}

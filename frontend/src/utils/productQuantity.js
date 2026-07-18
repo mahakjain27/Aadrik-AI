@@ -1,7 +1,7 @@
 // Quantity units differ by product line and aren't comparable to each other
-// (kg vs. boxes vs. coils vs. packets). This is the single source of truth
-// for which unit a product is sold in, used both to hint customers on the
-// quotation form and to normalize quantity in AI lead scoring.
+// (kg vs. boxes vs. coils vs. packets). Used to hint customers on the
+// quotation form which unit a product is sold in. AI lead scoring uses the
+// same category rules server-side (backend/app/services/lead_scoring.py).
 const QUANTITY_CATEGORIES = [
   { key: "coils", test: /\bmig\b|\bmag\b/i, label: "coil order", unit: "Coils" },
   { key: "kg", test: /\btig\b/i, label: "order size", unit: "Kg" },
