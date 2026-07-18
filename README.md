@@ -26,7 +26,7 @@ An internal AI-powered sales platform for **Aadrik Distributors Pvt. Ltd.** (wel
 
 ## Tech stack
 
-**Backend:** FastAPI, SQLite (WAL mode), ChromaDB (vector store), LangChain (RAG pipeline), OpenAI-compatible client against a **local LM Studio** server (embeddings + chat completion — zero API cost, runs offline), ReportLab (PDF generation), python-jose (JWT), passlib/bcrypt (password hashing).
+**Backend:** FastAPI, SQLite (WAL mode), ChromaDB (vector store), LangChain (RAG pipeline), **OpenAI** (`gpt-4.1-mini` for chat, `text-embedding-3-small` for embeddings, via an OpenAI-compatible client so any compatible endpoint can be swapped in through `OPENAI_BASE_URL`), ReportLab (PDF generation), python-jose (JWT), passlib/bcrypt (password hashing).
 
 **Frontend:** React 19 + Vite, React-Bootstrap, Recharts (analytics charts), Axios.
 
@@ -67,7 +67,7 @@ Aadrik-AI/
 
 - Python 3.11+
 - Node 18+
-- [LM Studio](https://lmstudio.ai/) running locally with an embedding model and a chat model loaded (see `backend/app/core/config.py` for the expected model names/URL — configurable via env vars).
+- An [OpenAI API key](https://platform.openai.com/api-keys) (or any OpenAI-compatible endpoint, configurable via `OPENAI_BASE_URL`).
 
 ## Running the backend
 
@@ -91,9 +91,10 @@ Environment variables (create `backend/app/.env`):
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `LM_STUDIO_BASE_URL` | `http://127.0.0.1:1234/v1` | LM Studio's OpenAI-compatible endpoint |
-| `LM_STUDIO_EMBED_MODEL` | `text-embedding-nomic-embed-text-v1.5` | Embedding model name |
-| `LM_STUDIO_CHAT_MODEL` | `llama-3.2-3b-instruct` | Chat model name |
+| `OPENAI_API_KEY` | *(unset)* | OpenAI API key — **required**, chat and embeddings will not work without it |
+| `OPENAI_BASE_URL` | `https://api.openai.com/v1` | OpenAI-compatible endpoint (swap for a local/self-hosted server if desired) |
+| `CHAT_MODEL` | `gpt-4.1-mini` | Chat model name |
+| `EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model name |
 | `AADRIK_API_KEY` | *(unset)* | Shared-secret sent as `x-api-key` from the frontend |
 | `SECRET_KEY` | *(unset)* | JWT signing secret — **required**, login will not work without it |
 | `ALGORITHM` | `HS256` | JWT signing algorithm |
