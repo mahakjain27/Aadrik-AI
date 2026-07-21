@@ -4,9 +4,11 @@ from app.middleware.auth import get_current_user, require_roles
 from app.schemas.session import (
     AssignSessionRequest,
     SalesReplyRequest,
+    SessionAIAssist,
     SessionMessagesResponse,
     SessionSummary,
 )
+from app.services.ai_service import generate_session_assist
 from app.services.session_service import (
     archive_session,
     assign_session_to,
@@ -133,6 +135,18 @@ def assign(
     assign_session_to(session_id, body.assigned_to, current_user)
 
     return {"success": True}
+
+
+@router.post("/sessions/{session_id}/ai-assist", response_model=SessionAIAssist)
+def ai_assist(
+    session_id: str,
+    current_user = Depends(require_roles(
+        "admin",
+        "manager",
+        "sales",
+    )),
+):
+    return generate_session_assist(session_id)
 
 
 @router.post("/sessions/{session_id}/reply")

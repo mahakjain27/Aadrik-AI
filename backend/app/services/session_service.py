@@ -156,6 +156,80 @@ def resolve_whatsapp_session(phone: str, first_message: str) -> str:
     return new_session_id
 
 
+def resolve_website_session(visitor_id: str, first_message: str) -> str:
+    """Returns a valid session_id for a message from the public website's AI
+    Assistant page, reusing the visitor's existing open conversation if
+    there is one, else starting a new one. Mirrors resolve_whatsapp_session:
+    there's no logged-in internal user_id for an anonymous visitor, so the
+    client-generated visitor_id (persisted in their browser) doubles as
+    both user_id and customer_phone - neither column has a real FK/format
+    constraint, they're just identity keys."""
+
+    existing = queries.get_active_session_by_phone(visitor_id, "website")
+
+    if existing is not None:
+        logger.info(f"Using existing website session: {existing['id']}")
+        return existing["id"]
+
+    new_session_id = str(uuid.uuid4())
+
+    queries.create_session(
+        new_session_id,
+        visitor_id,
+        make_title(first_message),
+        customer_phone=visitor_id,
+        channel="website",
+    )
+
+    logger.info(f"Created new website session: {new_session_id}")
+
+    return new_session_id
+
+
+def create_contact_session(
+    name: str,
+    phone: str,
+    company: str | None,
+    requirement: str | None,
+    message: str | None,
+) -> str:
+    """Creates a new Sales Inbox session from a public contact-form
+    submission. Always a fresh session, unlike resolve_website_session -
+    a contact form isn't an ongoing back-and-forth like chat/WhatsApp, just
+    a one-off inquiry that needs a human to see it, so it's dropped straight
+    into 'Waiting for Sales' rather than routed through the AI first."""
+
+    lines = [f"New contact form submission from {name}."]
+
+    if company:
+        lines.append(f"Company: {company}")
+
+    lines.append(f"Phone: {phone}")
+
+    if requirement:
+        lines.append(f"Requirement: {requirement}")
+
+    if message:
+        lines.append(f"Message: {message}")
+
+    new_session_id = str(uuid.uuid4())
+
+    queries.create_session(
+        new_session_id,
+        phone,
+        make_title(f"Contact form: {name}"),
+        customer_phone=phone,
+        channel="website",
+        status="Waiting for Sales",
+    )
+
+    queries.insert_message(new_session_id, "user", "\n".join(lines))
+
+    logger.info(f"Created new contact-form session: {new_session_id}")
+
+    return new_session_id
+
+
 def _row_to_summary(row) -> SessionSummary:
     return SessionSummary(
         id=row["id"],

@@ -54,6 +54,27 @@ export async function sendMessage(message, sessionId) {
   return response.data;
 }
 
+export async function sendPublicMessage(message, visitorId) {
+  const response = await api.post("/public/chat", {
+    message,
+    visitor_id: visitorId,
+  });
+
+  return response.data;
+}
+
+export async function submitPublicContact({ name, phone, company, requirement, message }) {
+  const response = await api.post("/public/contact", {
+    name,
+    phone,
+    company: company || undefined,
+    requirement: requirement || undefined,
+    message: message || undefined,
+  });
+
+  return response.data;
+}
+
 export async function getSessions() {
   const response = await api.get("/sessions");
 
@@ -68,6 +89,12 @@ export async function getSessionMessages(sessionId) {
 
 export async function getProducts() {
   const response = await api.get("/products");
+
+  return response.data;
+}
+
+export async function getPublicProducts() {
+  const response = await api.get("/public/products");
 
   return response.data;
 }
@@ -291,6 +318,11 @@ export async function sendSalesReply(sessionId, message) {
   const response = await api.post(`/sessions/${sessionId}/reply`, {
     message,
   });
+  return response.data;
+}
+
+export async function getSessionAIAssist(sessionId) {
+  const response = await api.post(`/sessions/${sessionId}/ai-assist`);
   return response.data;
 }
 

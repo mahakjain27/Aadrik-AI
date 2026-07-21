@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Spinner } from "react-bootstrap";
 import { FaEnvelope, FaLock, FaUser, FaEye, FaEyeSlash, FaArrowRight } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 import { login as loginAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -8,7 +9,14 @@ import logo from "../assets/logo.jpeg";
 import logoBgMark from "../assets/logo-watermark-login.png";
 
 export default function Login() {
-    const { login } = useAuth();
+    const { login, isAuthenticated } = useAuth();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate("/dashboard", { replace: true });
+        }
+    }, [isAuthenticated, navigate]);
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");

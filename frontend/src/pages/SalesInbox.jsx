@@ -13,6 +13,7 @@ import {
   deleteClosedSessions,
   assignSession,
   getAssignees,
+  getSessionAIAssist,
 } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { timeAgo } from "../utils/timeAgo";
@@ -184,6 +185,10 @@ export default function SalesInbox({ pendingSessionId, onConsumePending }) {
 
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
+  const [aiAssist, setAiAssist] = useState(null);
+  const [aiAssistLoading, setAiAssistLoading] = useState(false);
+  const [aiAssistError, setAiAssistError] = useState("");
+  const replyRef = useRef(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [deletingClosed, setDeletingClosed] = useState(false);
@@ -241,6 +246,11 @@ export default function SalesInbox({ pendingSessionId, onConsumePending }) {
   }, [conversation]);
 
   function loadConversation(id, { syncFilter = false } = {}) {
+    if (id !== selectedId) {
+      setAiAssist(null);
+      setAiAssistError("");
+    }
+
     setSelectedId(id);
     setLoadingConversation(true);
 
@@ -338,6 +348,31 @@ export default function SalesInbox({ pendingSessionId, onConsumePending }) {
     } finally {
       setSending(false);
     }
+  }
+
+  async function handleAIAssist() {
+    if (!selectedId) return;
+
+    setAiAssistLoading(true);
+    setAiAssistError("");
+
+    try {
+      const result = await getSessionAIAssist(selectedId);
+      setAiAssist(result);
+    } catch (err) {
+      setAiAssistError(
+        err.response?.data?.detail || "Couldn't generate AI assist for this conversation."
+      );
+    } finally {
+      setAiAssistLoading(false);
+    }
+  }
+
+  function useSuggestedReply() {
+    if (!aiAssist) return;
+
+    setReply(aiAssist.suggested_reply);
+    replyRef.current?.focus();
   }
 
   async function handleAssign(assignedTo) {
@@ -492,6 +527,13 @@ export default function SalesInbox({ pendingSessionId, onConsumePending }) {
                   className={`btn btn-sm flex-grow-1 ${
                     statusFilter === filter.status ? "btn-primary" : "btn-outline-secondary"
                   }`}
+                  style={{
+                    fontSize: "11px",
+                    padding: "5px 4px",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
                 >
                   {filter.label}
                 </button>
@@ -536,6 +578,7 @@ export default function SalesInbox({ pendingSessionId, onConsumePending }) {
                     background: session.id === selectedId ? "#f3eefb" : "transparent",
                     borderBottom: "1px solid rgba(11,11,11,0.08)",
                     cursor: "pointer",
+                    minHeight: "76px",
                   }}
                 >
                   <div className="d-flex justify-content-between align-items-start gap-2">
@@ -672,7 +715,70 @@ export default function SalesInbox({ pendingSessionId, onConsumePending }) {
                   </div>
                 ) : (
                   <>
+                    <div className="d-flex justify-content-between align-items-start mb-2 gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-primary"
+                        onClick={handleAIAssist}
+                        disabled={aiAssistLoading}
+                      >
+                        {aiAssistLoading ? (
+                          <>
+                            <Spinner animation="border" size="sm" className="me-1" />
+                            Thinking...
+                          </>
+                        ) : (
+                          "✨ AI Assist"
+                        )}
+                      </button>
+                    </div>
+
+                    {aiAssistError && (
+                      <div className="small text-danger mb-2">{aiAssistError}</div>
+                    )}
+
+                    {aiAssist && (
+                      <div
+                        className="mb-2 p-2"
+                        style={{
+                          background: "#f3eefb",
+                          border: "1px solid rgba(111,66,193,0.18)",
+                          borderRadius: "10px",
+                        }}
+                      >
+                        <div className="small fw-semibold mb-1" style={{ color: "#6f42c1" }}>
+                          Summary
+                        </div>
+                        <div className="small mb-2">{aiAssist.summary}</div>
+
+                        <div className="small fw-semibold mb-1" style={{ color: "#6f42c1" }}>
+                          Suggested reply
+                        </div>
+                        <div className="small mb-2" style={{ whiteSpace: "pre-wrap" }}>
+                          {aiAssist.suggested_reply}
+                        </div>
+
+                        <div className="d-flex justify-content-end gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-secondary"
+                            onClick={() => setAiAssist(null)}
+                          >
+                            Dismiss
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-primary"
+                            onClick={useSuggestedReply}
+                          >
+                            Use this reply
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     <textarea
+                      ref={replyRef}
                       className="form-control mb-2"
                       rows={2}
                       placeholder="Type a reply..."
@@ -764,6 +870,8 @@ export default function SalesInbox({ pendingSessionId, onConsumePending }) {
                     ? "Internal (AI Chat)"
                     : conversation.channel === "whatsapp"
                     ? "WhatsApp"
+                    : conversation.channel === "website"
+                    ? "Website"
                     : conversation.channel
                 }
               />

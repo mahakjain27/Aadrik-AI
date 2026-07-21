@@ -1,0 +1,95 @@
+/* Public website only — scoped under .aadrik-site so nothing here can leak
+   into the dashboard, which keeps its own Bootstrap-based theme.css. */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap");
+
+.aadrik-site {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  color: #1c1a1a;
+  -webkit-font-smoothing: antialiased;
+  background: #fbf9f9;
+}
+
+.aadrik-site h1,
+.aadrik-site h2,
+.aadrik-site h3,
+.aadrik-site h4 {
+  font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.aadrik-gradient-text {
+  background: linear-gradient(135deg, #221f1f 0%, #5c1030 55%, #8a2142 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.aadrik-site ::selection {
+  background: #5c1030;
+  color: #fff;
+}
+
+/* Preflight is off (see tailwind.config.js) so the browser's default link
+   underline survives unless reset here. Deliberately NOT setting `color`
+   here — `.aadrik-site a` (class+element) outranks a bare Tailwind utility
+   class like `.tw-text-white` in specificity and would silently win over
+   every link's intended color. */
+.aadrik-site a {
+  text-decoration: none;
+}
+
+/* Scroll-reveal: elements start hidden and are flipped to .is-visible by an
+   IntersectionObserver in useScrollReveal. Kept out of Tailwind's JIT layer
+   since it's a state toggle, not a utility combo. */
+.aadrik-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.aadrik-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.aadrik-site .aadrik-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.aadrik-site .aadrik-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(92, 16, 48, 0.25);
+  border-radius: 8px;
+}
+
+.aadrik-site .aadrik-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Site-wide watermark, same technique as the dashboard's .app-watermark
+   (theme.css): fixed to the viewport so it stays centered behind content
+   as the page scrolls. No sidebar to offset for here, so it's centered
+   across the full width. Only shows through sections without their own
+   opaque background (an in-flow section with a solid bg-* class paints
+   over it within its own bounds, same as on the dashboard). */
+.aadrik-watermark {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.aadrik-watermark img {
+  width: 650px;
+  max-width: 70vw;
+  opacity: 0.045;
+  user-select: none;
+}
+
+.aadrik-site > *:not(.aadrik-watermark) {
+  position: relative;
+  z-index: 1;
+}

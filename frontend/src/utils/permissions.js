@@ -1,10 +1,9 @@
 export const permissions = {
   admin: [
-    "chat",
+    "dashboard",
     "products",
     "product_admin",
     "knowledge_admin",
-    "dashboard",
     "analytics",
     "customers",
     "policies",
@@ -16,9 +15,8 @@ export const permissions = {
   ],
 
   sales: [
-    "chat",
-    "products",
     "dashboard",
+    "products",
     "customers",
     "inbox",
   ],
@@ -34,7 +32,7 @@ export const permissions = {
   ],
 
   viewer: [
-    "chat",
+    "policies",
     "products",
   ],
 };

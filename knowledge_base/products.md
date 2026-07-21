@@ -1,5 +1,80 @@
 # Products
 
+## Cutting & Grinding
+
+### AG Cutting Wheels
+
+Brand: RASI
+Available sizes: 4 inch,5 inch,7 inch,14 inch
+Stock status: In Stock
+
+High Quality Grinding & Cutting Abrasives giving very good cut rate along with very good wheel Life.
+
+### AG Grinding Wheels
+
+Brand: RASI
+Available sizes: 4 inch,5 inch,7 inch
+Stock status: In Stock
+
+High Quality Grinding & Cutting Abrasives giving very good cut rate along with very good wheel Life.
+
+## Flux Cored Wires
+
+### RASI E 308LT1-1
+
+Brand: RASI
+Grade: E 308LT1-1
+Stock status: In Stock
+
+FCAW requires a continuously-fed consumable tubular electrode containing a flux and a constant-voltage or, less commonly, a constant-current welding power supply.
+
+### RASI E 309L-T1-1
+
+Brand: RASI
+Grade: E 309L-T1-1
+Stock status: In Stock
+
+FCAW requires a continuously-fed consumable tubular electrode containing a flux and a constant-voltage or, less commonly, a constant-current welding power supply.
+
+### RASI E 70C-6M
+
+Brand: RASI
+Grade: E 70C-6M
+Stock status: In Stock
+
+FCAW requires a continuously-fed consumable tubular electrode containing a flux and a constant-voltage or, less commonly, a constant-current welding power supply.
+
+### RASI E 71T-1C
+
+Brand: RASI
+Grade: E71T-1
+Stock status: In Stock
+
+FCAW requires a continuously-fed consumable tubular electrode containing a flux and a constant-voltage or, less commonly, a constant-current welding power supply.
+
+### RASI E 71T-5
+
+Brand: RASI
+Grade: E 71T-5
+Stock status: In Stock
+
+FCAW requires a continuously-fed consumable tubular electrode containing a flux and a constant-voltage or, less commonly, a constant-current welding power supply.
+
+### RASI E 90T5-G
+
+Brand: RASI
+Grade: E 90T5-G
+Stock status: In Stock
+
+FCAW requires a continuously-fed consumable tubular electrode containing a flux and a constant-voltage or, less commonly, a constant-current welding power supply.
+
+### RASI HF 60T
+
+Brand: RASI
+Stock status: In Stock
+
+FCAW requires a continuously-fed consumable tubular electrode containing a flux and a constant-voltage or, less commonly, a constant-current welding power supply.
+
 ## MIG / MAG Welding Wire
 
 ### Rasi CO2 MIG Wire (ER70S-6)
@@ -7,14 +82,6 @@
 Brand: RASI co2 wire
 Grade: ER70S-6
 Available sizes: 0.80 mm,1.00 mm,1.20 mm,0.80 mm (12.5 kg Spool)
-Stock status: In Stock
-Applications: CO2 Welding,MIG Welding,Fabrication,Automobile Industry
-
-### Rasi CO2 MIG Wire (ER70S2)
-
-Brand: RASI ER70S2
-Grade: ER70S2
-Available sizes: 1.60 mm,2.00 mm,2.40 mm,3.20 mm
 Stock status: In Stock
 Applications: CO2 Welding,MIG Welding,Fabrication,Automobile Industry
 
@@ -105,6 +172,20 @@ Packaging: 1 Litre,4 Litres,20 Litres
 Stock status: In Stock
 Applications: Metal surface protection,Corrosion resistance,Industrial painting
 
+## SAW Wire & Flux
+
+### RASI EL 8
+
+Brand: RASI
+Grade: EL-8
+Stock status: In Stock
+
+### RASI FLUX EL-8
+
+Brand: RASI
+Grade: F7AZEL-8
+Stock status: In Stock
+
 ## TIG Filler Rods
 
 ### Rasi SS TIG Filler Rods
@@ -138,6 +219,14 @@ Grade: 316
 Available sizes: 1.60 mm,2.00 mm,2.40 mm,3.20 mm
 Stock status: In Stock
 Applications: TIG Welding,Stainless Steel Welding,Precision Fabrication
+
+### Rasi TIG Wire (ER70S2)
+
+Brand: RASI ER70S2
+Grade: ER70S2
+Available sizes: 1.60 mm,2.00 mm,2.40 mm,3.20 mm
+Stock status: In Stock
+Applications: TIG Welding,Fabrication,Automobile Industry
 
 ### Superon SS TIG Filler Rods
 
@@ -178,6 +267,15 @@ Grade: 316E
 Available sizes: 1.60 mm,2.00 mm,2.40 mm,3.20 mm
 Stock status: In Stock
 Applications: TIG Welding,Stainless Steel Welding,Precision Fabrication
+
+## Tungsten Electrodes
+
+### Tungsten Electrode
+
+Grade: EWP
+Stock status: In Stock
+
+Tungsten electrodes (AWS classification EWP) contain 99.50 percent tungsten, have the highest consumption rate of all electrodes, and typically are less expensive than their alloyed counterparts.
 
 ## Welding Electrodes
 

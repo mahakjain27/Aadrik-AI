@@ -5,7 +5,6 @@ function ProductDetailsModal({
   onClose,
   product,
   selectedVariant,
-  onAsk,
   onQuote,
 }) {
   if (!product) return null;
@@ -72,13 +71,6 @@ function ProductDetailsModal({
       </Modal.Body>
 
       <Modal.Footer>
-        <Button
-          variant="outline-primary"
-          onClick={() => onAsk(product, selectedVariant)}
-        >
-          💬 Ask AI
-        </Button>
-
         <Button
           variant="primary"
           onClick={() => onQuote(product, selectedVariant)}

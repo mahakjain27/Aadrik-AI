@@ -1,3 +1,5 @@
+import json
+
 import openai
 from fastapi import HTTPException, status
 from openai import OpenAI
@@ -234,3 +236,102 @@ def generate_ai_reply(session_id: str, message: str, history: list) -> dict:
         "sources": sources,
         "session_id": session_id,
     }
+
+
+ASSIST_ROLE_LABELS = {
+    "user": "Customer",
+    "assistant": "AI",
+    "sales": "Sales rep",
+}
+
+ASSIST_SYSTEM_PROMPT = """You are a sales-assist copilot for Aadrik Distributors Pvt. Ltd.
+staff. You are given a conversation transcript between a customer and the company (AI and/or
+a salesperson). Produce:
+
+1. "summary": 2-3 sentences a salesperson can read in a few seconds - who the customer is
+   (if known), what they want, and where the conversation currently stands.
+2. "suggested_reply": a short, professional draft reply the salesperson could send as-is or
+   edit, addressing the customer's most recent message.
+
+Rules:
+- Never invent prices, discounts, stock levels, or policies that aren't stated in the
+  transcript. If pricing is relevant but not yet discussed, the suggested reply should say
+  the team will follow up with pricing rather than inventing a number.
+- Base the summary and reply only on what is actually in the transcript.
+- Respond with ONLY a JSON object: {"summary": "...", "suggested_reply": "..."}
+"""
+
+
+def generate_session_assist(session_id: str) -> dict:
+    """On-demand AI assist for a Sales Inbox conversation: a short internal
+    summary plus a draft reply for the rep to send or edit. Unlike
+    generate_ai_reply, this is a scratch aid for staff, not the
+    customer-facing assistant - nothing here is persisted to `messages`."""
+
+    session = queries.get_session_by_id(session_id)
+
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found.",
+        )
+
+    history = queries.list_messages(session_id)
+
+    if not history:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This conversation has no messages yet.",
+        )
+
+    transcript = "\n".join(
+        f"{ASSIST_ROLE_LABELS.get(msg['role'], msg['role'])}: {msg['content']}"
+        for msg in history
+    )
+
+    messages = [
+        {"role": "system", "content": ASSIST_SYSTEM_PROMPT},
+        {"role": "user", "content": f"Conversation transcript:\n\n{transcript}"},
+    ]
+
+    try:
+        logger.info(f"Requesting AI assist for session {session_id}")
+        response = client.chat.completions.create(
+            model=settings.chat_model,
+            temperature=0.3,
+            response_format={"type": "json_object"},
+            messages=messages,
+        )
+
+    except openai.APITimeoutError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="The AI service timed out. Please try again.",
+        ) from exc
+
+    except openai.APIConnectionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not reach the AI service. Please check the connection and try again.",
+        ) from exc
+
+    except openai.APIStatusError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI service returned an error (status {exc.status_code}).",
+        ) from exc
+
+    raw = response.choices[0].message.content
+
+    try:
+        parsed = json.loads(raw)
+        summary = parsed["summary"]
+        suggested_reply = parsed["suggested_reply"]
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        logger.exception(f"AI assist returned malformed JSON for session {session_id}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="The AI service returned an unexpected response. Please try again.",
+        ) from exc
+
+    return {"summary": summary, "suggested_reply": suggested_reply}

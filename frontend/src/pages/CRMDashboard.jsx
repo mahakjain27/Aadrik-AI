@@ -59,6 +59,35 @@ const PRIORITY_META = {
   Low: { emoji: "⬇", color: "#898781" },
 };
 
+const SOURCE_META = {
+  website: { label: "Website", emoji: "🌐", color: "#1baf7a" },
+  whatsapp: { label: "WhatsApp", emoji: "💬", color: "#25d366" },
+  manual: { label: "Manual", emoji: "✍", color: "#898781" },
+};
+
+function SourceBadge({ source }) {
+  const meta = SOURCE_META[source] || { label: source || "—", emoji: "", color: "#898781" };
+
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        padding: "4px 10px",
+        borderRadius: "999px",
+        fontSize: "12px",
+        fontWeight: 600,
+        whiteSpace: "nowrap",
+        background: hexToRgba(meta.color, 0.12),
+        color: meta.color,
+      }}
+    >
+      {meta.emoji} {meta.label}
+    </span>
+  );
+}
+
 function PriorityBadge({ priority, score, reason, quantityUnit }) {
   if (!priority) {
     return <span style={{ color: "#898781", fontSize: "12px" }}>—</span>;
@@ -241,6 +270,7 @@ export default function CRMDashboard({ pendingQuotationId, onConsumePending }) {
   const [search,setSearch]=useState("");
   const [activeFilter,setActiveFilter]=useState("All");
   const [yearFilter, setYearFilter] = useState("");
+  const [sourceFilter, setSourceFilter] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [yearOptions, setYearOptions] = useState([]);
   const [selectedLead, setSelectedLead] = useState(null);
@@ -284,7 +314,11 @@ export default function CRMDashboard({ pendingQuotationId, onConsumePending }) {
     activeFilter === "All" ||
     lead.status === activeFilter;
 
-  return matchesSearch && matchesStatus;
+  const matchesSource =
+    !sourceFilter ||
+    lead.source === sourceFilter;
+
+  return matchesSearch && matchesStatus && matchesSource;
 });
   
   async function loadLeads() {
@@ -358,7 +392,7 @@ export default function CRMDashboard({ pendingQuotationId, onConsumePending }) {
 
       <div className="row mb-4 align-items-center g-2">
 
-        <div className="col-md-5">
+        <div className="col-md-4">
           <input
             className="form-control"
             placeholder="🔍 Search Quote No, Company, Product..."
@@ -367,7 +401,7 @@ export default function CRMDashboard({ pendingQuotationId, onConsumePending }) {
           />
         </div>
 
-        <div className="col-md-3">
+        <div className="col-md-2">
           <select
             className="form-select"
             value={yearFilter}
@@ -379,6 +413,19 @@ export default function CRMDashboard({ pendingQuotationId, onConsumePending }) {
                 {year}
               </option>
             ))}
+          </select>
+        </div>
+
+        <div className="col-md-2">
+          <select
+            className="form-select"
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value)}
+          >
+            <option value="">All Sources</option>
+            <option value="website">Website</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="manual">Manual</option>
           </select>
         </div>
 
@@ -458,6 +505,7 @@ export default function CRMDashboard({ pendingQuotationId, onConsumePending }) {
               <tr>
                 <th>Quote No</th>
                 <th>Company</th>
+                <th>Source</th>
                 <th>AI Priority</th>
                 <th>Product</th>
                 <th>Quantity</th>
@@ -482,6 +530,10 @@ export default function CRMDashboard({ pendingQuotationId, onConsumePending }) {
                   </td>
 
                   <td style ={{ minWidth: "200px"}}>{lead.company_name}</td>
+
+                  <td>
+                    <SourceBadge source={lead.source} />
+                  </td>
 
                   <td>
                     <PriorityBadge

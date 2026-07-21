@@ -1,14 +1,6 @@
-import { groupSessions } from "../utils/groupSessions";
 import { canAccess } from "../utils/permissions";
 
-const GROUP_LABELS = {
-  Today: "Today's Chats",
-  Yesterday: "Yesterday",
-  Older: "Older",
-};
-
 const MODULES = [
-  { key: "chat", label: "AI Chat", icon: "🤖", onClickKey: "onOpenChat" },
   { key: "dashboard", label: "Dashboard", icon: "📊", onClickKey: "onOpenCRM" },
   { key: "analytics", label: "Analytics", icon: "📈", onClickKey: "onOpenAnalytics" },
   { key: "customers", label: "Customers", icon: "👥", onClickKey: "onOpenCustomers" },
@@ -16,19 +8,13 @@ const MODULES = [
 ];
 
 function Sidebar({
-  sessions,
-  activeSessionId,
-  onNewChat,
-  onSelectSession,
   onOpenProducts,
-  loading,
   role,
 
   activePage,
   onOpenCRM,
   onOpenAnalytics,
   onOpenCustomers,
-  onOpenChat,
   onOpenInbox,
   onOpenPolicies,
   onOpenCompany,
@@ -38,16 +24,13 @@ function Sidebar({
   onOpenProductAdmin,
   onOpenKnowledgeAdmin,
 }) {
-  const grouped = groupSessions(sessions);
   const handlers = {
-    onOpenChat,
     onOpenCRM,
     onOpenAnalytics,
     onOpenCustomers,
     onOpenInbox,
   };
   const visibleModules = MODULES.filter((mod) => canAccess(role, mod.key));
-  const canChat = canAccess(role, "chat");
   const canProducts = canAccess(role, "products");
   const canPolicies = canAccess(role, "policies");
   const canCompany = canAccess(role, "company");
@@ -69,42 +52,6 @@ function Sidebar({
       }}
     >
       <h5 className="mb-4">Menu</h5>
-
-      {canChat && (
-        <button
-          className="btn btn-primary w-100 mb-3"
-          onClick={onNewChat}
-          disabled={loading}
-        >
-          💬 New Chat
-        </button>
-      )}
-
-      {canChat &&
-        activePage === "chat" &&
-        ["Today", "Yesterday", "Older"].map((group) =>
-          grouped[group].length === 0 ? null : (
-            <div key={group} className="mb-3">
-              <div className="text-muted small fw-bold mb-1">
-                {GROUP_LABELS[group]}
-              </div>
-
-              <div className="list-group">
-                {grouped[group].map((session) => (
-                  <button
-                    key={session.id}
-                    className={`list-group-item list-group-item-action text-truncate ${
-                      session.id === activeSessionId ? "active" : ""
-                    }`}
-                    onClick={() => onSelectSession(session.id)}
-                  >
-                    📄 {session.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )
-        )}
 
       <div className="text-muted small fw-bold mb-1">Modules</div>
 

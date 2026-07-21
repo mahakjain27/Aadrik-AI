@@ -42,3 +42,8 @@ class SalesReplyRequest(BaseModel):
 
 class AssignSessionRequest(BaseModel):
     assigned_to: int | None = None
+
+
+class SessionAIAssist(BaseModel):
+    summary: str
+    suggested_reply: str

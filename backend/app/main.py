@@ -12,6 +12,7 @@ from app.api.knowledge_documents import router as knowledge_documents_router
 from app.api.notifications import router as notifications_router
 from app.api.product_admin import router as product_admin_router
 from app.api.products import router as products_router
+from app.api.public_contact import router as public_contact_router
 from app.api.public_quote import router as public_quote_router
 from app.api.quotation import router as quotation_router
 from app.api.realtime import router as realtime_router
@@ -60,6 +61,7 @@ app.include_router(activity_router)
 app.include_router(realtime_router)
 app.include_router(whatsapp_webhook_router)
 app.include_router(public_quote_router)
+app.include_router(public_contact_router)
 app.include_router(system_router)
 app.include_router(customers_router)
 app.include_router(product_admin_router)
