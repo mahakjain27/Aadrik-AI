@@ -7,6 +7,7 @@ import {
   FaLayerGroup,
   FaPaintRoller,
   FaRulerHorizontal,
+  FaShieldAlt,
 } from "react-icons/fa";
 
 import weldingElectrodesPhoto from "../assets/WELDING_ELECTRODES.jpg";
@@ -17,6 +18,7 @@ import grindCutPhoto from "../assets/grind&cut.jpg";
 import tungstenPhoto from "../assets/tungsten.jpg";
 import sawWireFluxPhoto from "../assets/S.A.W_WIRE_AND_FLUX.jpg";
 import fluxCoreWirePhoto from "../assets/FLUX_CORE_WIRE.jpg";
+import hardFacingPhoto from "../assets/hard_facing.png";
 
 // Category-level display info (icon fallback + blurb + real photo).
 // Keys must match the `category` strings that come back from
@@ -68,6 +70,11 @@ export const CATEGORY_META = {
     icon: FaCircleNotch,
     blurb: "Carbon steel, stainless, metal-cored and hard-facing FCAW wires.",
     image: fluxCoreWirePhoto,
+  },
+  "Hard Facing": {
+    icon: FaShieldAlt,
+    blurb: "Wear-resistant hard-facing consumables for surfacing and rebuilding.",
+    image: hardFacingPhoto,
   },
 };
 
