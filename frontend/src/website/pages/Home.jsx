@@ -15,6 +15,7 @@ import ProductDetailModal from "../components/ProductDetailModal";
 import { useProductCatalog } from "../hooks/useProductCatalog";
 import { productSearchText } from "../utils/productDisplay";
 import heroImage from "../../assets/hero.png";
+import rasiLogo from "../../assets/rasi.png";
 
 const WHY_US = [
   {
@@ -116,12 +117,19 @@ export default function Home() {
           </div>
 
           <Reveal delay={160} className="tw-relative tw-flex tw-justify-center">
-            <img
-              src={heroImage}
-              alt=""
-              aria-hidden="true"
-              className="tw-w-64 tw-animate-float tw-drop-shadow-2xl sm:tw-w-80 lg:tw-w-96"
-            />
+            <div className="tw-relative tw-animate-float">
+              <img
+                src={heroImage}
+                alt=""
+                aria-hidden="true"
+                className="tw-w-64 tw-drop-shadow-2xl sm:tw-w-80 lg:tw-w-96"
+              />
+              <img
+                src={rasiLogo}
+                alt="RASI Electrodes"
+                className="tw-absolute tw-left-1/2 tw-top-[31%] tw-w-[67%] tw-h-auto tw--translate-x-1/2 tw--translate-y-1/2 tw-drop-shadow-[0_0_14px_rgba(255,60,90,0.65)]"
+              />
+            </div>
           </Reveal>
         </div>
       </section>
