@@ -78,6 +78,7 @@ export default function ProductDetailModal({ product, onClose }) {
           </Link>
           <Link
             to="/contact"
+            state={{ requirement: productTitle(product) }}
             onClick={onClose}
             className="tw-flex-1 tw-rounded-full tw-border tw-border-aadrik-wine tw-px-5 tw-py-3 tw-text-center tw-text-sm tw-font-semibold tw-text-aadrik-wine"
           >

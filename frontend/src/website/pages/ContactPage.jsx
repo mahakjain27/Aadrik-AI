@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { FaCheckCircle, FaEnvelope, FaMapMarkerAlt, FaPhoneAlt } from "react-icons/fa";
 
 import Reveal from "../components/Reveal";
@@ -14,7 +15,10 @@ const FIELDS = [
 const EMPTY_FORM = { name: "", phone: "", company: "", requirement: "", message: "" };
 
 export default function ContactPage() {
-  const [form, setForm] = useState(EMPTY_FORM);
+  const location = useLocation();
+  const prefillRequirement = location.state?.requirement || "";
+
+  const [form, setForm] = useState({ ...EMPTY_FORM, requirement: prefillRequirement });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -61,6 +65,12 @@ export default function ContactPage() {
         <p className="tw-mx-auto tw-mt-4 tw-max-w-2xl tw-text-lg tw-text-aadrik-charcoal/60">
           Tell us what you need and our team will get back to you.
         </p>
+
+        {prefillRequirement && (
+          <p className="tw-mx-auto tw-mt-4 tw-inline-block tw-rounded-full tw-bg-aadrik-cream tw-px-4 tw-py-1.5 tw-text-sm tw-font-medium tw-text-aadrik-wine">
+            Quoting for: {prefillRequirement}
+          </p>
+        )}
       </Reveal>
 
       <div className="tw-mt-16 tw-grid tw-grid-cols-1 tw-gap-12 lg:tw-grid-cols-5">

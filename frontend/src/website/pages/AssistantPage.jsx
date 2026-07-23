@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { FaPaperPlane, FaRobot } from "react-icons/fa";
 
 import { getSessions, sendMessage, sendPublicMessage } from "../../services/api";
@@ -12,6 +13,42 @@ const SUGGESTED_PROMPTS = [
   "What products do you sell?",
   "Generate a quotation.",
 ];
+
+// Matches QUOTATION_PROMPT_MARKER in backend/app/api/whatsapp_webhook.py.
+// On WhatsApp this marker triggers a native interactive menu instead of
+// plain text; here it triggers a real "Request Quotation" button.
+const QUOTATION_MARKER = "Request Quotation";
+
+// Renders "- item" lines as bullet lists and preserves blank-line paragraph
+// breaks, instead of collapsing the reply into one dense line of text.
+function MessageBody({ text }) {
+  const blocks = text.split(/\n\n+/);
+
+  return (
+    <div className="tw-space-y-2">
+      {blocks.map((block, i) => {
+        const lines = block.split("\n").filter((line) => line.trim() !== "");
+        const isList = lines.length > 0 && lines.every((line) => /^[-•]\s+/.test(line.trim()));
+
+        if (isList) {
+          return (
+            <ul key={i} className="tw-list-disc tw-space-y-1 tw-pl-5">
+              {lines.map((line, j) => (
+                <li key={j}>{line.trim().replace(/^[-•]\s+/, "")}</li>
+              ))}
+            </ul>
+          );
+        }
+
+        return (
+          <p key={i} className="tw-whitespace-pre-line">
+            {block}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function AssistantPage() {
   // Logged-in staff keep using /chat (JWT, tied to their user, same as the
@@ -139,7 +176,16 @@ export default function AssistantPage() {
                         : "tw-bg-aadrik-charcoal/5 tw-text-aadrik-charcoal"
                   }`}
                 >
-                  {message.text}
+                  <MessageBody text={message.text} />
+
+                  {message.sender === "Aadrik AI" && message.text.includes(QUOTATION_MARKER) && (
+                    <Link
+                      to="/contact"
+                      className="tw-mt-3 tw-inline-flex tw-items-center tw-justify-center tw-rounded-full tw-bg-aadrik-wine tw-px-4 tw-py-2 tw-text-xs tw-font-semibold tw-text-white tw-transition-opacity tw-duration-200 hover:tw-opacity-90"
+                    >
+                      Request Quotation
+                    </Link>
+                  )}
                 </div>
               </div>
             ))
