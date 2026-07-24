@@ -67,6 +67,16 @@ class Settings:
     whatsapp_business_account_id: str = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "")
     whatsapp_verify_token: str = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
 
+    # Pre-approved Meta template used to confirm a website contact-form
+    # submission - required because the submitter usually has no open
+    # WhatsApp session (the 24h freeform window doesn't apply to templates).
+    whatsapp_contact_template_name: str = os.getenv(
+        "WHATSAPP_CONTACT_TEMPLATE_NAME", "contact_form_received"
+    )
+    whatsapp_contact_template_lang: str = os.getenv(
+        "WHATSAPP_CONTACT_TEMPLATE_LANG", "en_US"
+    )
+
     # --- Public origin (used to build links sent to WhatsApp customers,
     # e.g. the ngrok tunnel URL during local testing) ---
     public_base_url: str = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")

@@ -5,6 +5,7 @@ from app.core.rate_limit import is_rate_limited, record_attempt
 from app.models.quotation import QuotationRequest
 from app.schemas.contact import PublicContactRequest, PublicContactResponse
 from app.services.activity_log import log_activity
+from app.services.contact_notifications import send_contact_form_confirmation
 from app.services.session_service import create_contact_session
 
 router = APIRouter()
@@ -66,6 +67,8 @@ def submit_contact_form(request: PublicContactRequest):
         entity_id=quotation_id,
         message=f"Website contact form submitted by {request.name} ({quotation_request.company_name}).",
     )
+
+    send_contact_form_confirmation(request.name, request.phone)
 
     return PublicContactResponse(
         success=True,

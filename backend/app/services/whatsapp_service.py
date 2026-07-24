@@ -76,6 +76,46 @@ def send_whatsapp_message(to_phone: str, message: str) -> str | None:
     )
 
 
+def send_whatsapp_template(
+    to_phone: str,
+    template_name: str,
+    language_code: str,
+    body_params: list[str] | None = None,
+) -> str | None:
+    """Sends a pre-approved Meta template message. Unlike
+    send_whatsapp_message, this works even with no open 24h customer
+    service window, which is why business-initiated notices (like a
+    contact-form confirmation) have to use a template instead of freeform
+    text. `body_params` fill the template's {{1}}, {{2}}, ... placeholders
+    in order, matching however the template was written in Meta Business
+    Manager."""
+
+    components = (
+        [
+            {
+                "type": "body",
+                "parameters": [{"type": "text", "text": param} for param in body_params],
+            }
+        ]
+        if body_params
+        else []
+    )
+
+    return _post_message(
+        {
+            "messaging_product": "whatsapp",
+            "to": to_phone,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {"code": language_code},
+                "components": components,
+            },
+        },
+        to_phone,
+    )
+
+
 def upload_whatsapp_media(file_bytes: bytes, filename: str, mime_type: str) -> str | None:
     """Uploads a file to Meta's media endpoint, returning a media id that
     can be referenced when sending a document message. Media ids expire
