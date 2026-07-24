@@ -3,7 +3,7 @@ COMPANY = {
     "tagline": "Welding Consumables",
     "address": "79C, Nattupilliar Koil Street, Maskan Chavadi, Seven Wells South, George Town, Chennai, Tamil Nadu 600001, India ",
     "phone": "+91 9840050923",
-    "email": ["rasiweld@gmail.com", "accounts@aadrik.co.in"],
+    "email": ["ea@aadrik.co.in"],
     "payment_terms": "Advance payment unless otherwise agreed",
     "delivery_terms": "Delivery within 3 working days",
     "validity_days": 15,

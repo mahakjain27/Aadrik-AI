@@ -190,7 +190,7 @@ def generate_quotation_pdf(lead):
         f"<font size='9' color='#666666'>{COMPANY['tagline']}</font><br/>"
         f"<font size='9' color='#666666'>{COMPANY['address']}</font><br/>"
         f"<font size='9' color='#666666'>{COMPANY['phone']}</font><br/>"
-        f"<font size='9' color='#666666'>{COMPANY['email']}</font>",
+        f"<font size='9' color='#666666'>{', '.join(COMPANY['email'])}</font>",
         ParagraphStyle(
             "CompanyBlock",
             parent=company_name_style,

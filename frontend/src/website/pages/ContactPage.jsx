@@ -148,7 +148,7 @@ export default function ContactPage() {
                 <FaEnvelope className="tw-mt-1 tw-shrink-0 tw-text-aadrik-wine" />
                 <div>
                   <dt className="tw-font-semibold tw-text-aadrik-charcoal">Email</dt>
-                  <dd className="tw-text-aadrik-charcoal/60">sales@aadrik.co.in</dd>
+                  <dd className="tw-text-aadrik-charcoal/60">ea@aadrik.co.in</dd>
                 </div>
               </div>
               <div className="tw-flex tw-items-start tw-gap-3">

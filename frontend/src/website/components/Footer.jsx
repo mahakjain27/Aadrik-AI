@@ -62,7 +62,7 @@ export default function Footer() {
               </li>
               <li className="tw-flex tw-items-start tw-gap-2">
                 <FaEnvelope className="tw-mt-1 tw-shrink-0 tw-text-aadrik-wineLight" />
-                <span>sales@aadrik.co.in</span>
+                <span>ea@aadrik.co.in</span>
               </li>
               <li className="tw-flex tw-items-start tw-gap-2">
                 <FaMapMarkerAlt className="tw-mt-1 tw-shrink-0 tw-text-aadrik-wineLight" />

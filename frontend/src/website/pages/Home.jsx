@@ -327,7 +327,7 @@ export default function Home() {
               </div>
               <div>
                 <dt className="tw-font-semibold tw-text-aadrik-charcoal">Email</dt>
-                <dd className="tw-text-aadrik-charcoal/60">sales@aadrik.co.in</dd>
+                <dd className="tw-text-aadrik-charcoal/60">ea@aadrik.co.in</dd>
               </div>
               <div>
                 <dt className="tw-font-semibold tw-text-aadrik-charcoal">Address</dt>
