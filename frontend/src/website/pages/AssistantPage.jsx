@@ -6,6 +6,7 @@ import { getSessions, sendMessage, sendPublicMessage } from "../../services/api"
 import { groupSessions } from "../../utils/groupSessions";
 import { useAuth } from "../../context/AuthContext";
 import { getVisitorId } from "../utils/visitorId";
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
 
 const SUGGESTED_PROMPTS = [
   "Which welding wire should I use?",
@@ -51,6 +52,11 @@ function MessageBody({ text }) {
 }
 
 export default function AssistantPage() {
+  useDocumentMeta(
+    "AI Assistant | Aadrik Distributors Pvt. Ltd.",
+    "Ask Aadrik's AI assistant about RASI Electrodes, welding consumables, and product recommendations, or request a quotation instantly."
+  );
+
   // Logged-in staff keep using /chat (JWT, tied to their user, same as the
   // dashboard). Anonymous visitors use /public/chat (see backend/app/api/chat.py)
   // - a per-browser visitor_id keyed to a 'website' session, same pattern as

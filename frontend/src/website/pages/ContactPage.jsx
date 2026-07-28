@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { FaCheckCircle, FaEnvelope, FaMapMarkerAlt, FaPhoneAlt } from "react-icons/fa";
 
 import Reveal from "../components/Reveal";
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
 import { submitPublicContact } from "../../services/api";
 
 const FIELDS = [
@@ -15,6 +16,11 @@ const FIELDS = [
 const EMPTY_FORM = { name: "", phone: "", company: "", requirement: "", message: "" };
 
 export default function ContactPage() {
+  useDocumentMeta(
+    "Contact Us | Aadrik Distributors Pvt. Ltd.",
+    "Get in touch with Aadrik Distributors Pvt. Ltd. in Chennai for RASI Electrodes, welding consumables, and industrial supply quotations."
+  );
+
   const location = useLocation();
   const prefillRequirement = location.state?.requirement || "";
 

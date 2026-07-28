@@ -13,6 +13,7 @@ import Reveal from "../components/Reveal";
 import ProductCard from "../components/ProductCard";
 import ProductDetailModal from "../components/ProductDetailModal";
 import { useProductCatalog } from "../hooks/useProductCatalog";
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
 import { productSearchText } from "../utils/productDisplay";
 import heroImage from "../../assets/hero.png";
 import rasiLogo from "../../assets/rasi.png";
@@ -59,6 +60,11 @@ const HOW_IT_WORKS = [
 ];
 
 export default function Home() {
+  useDocumentMeta(
+    "Aadrik Distributors Pvt. Ltd. | RASI Electrodes & Welding Consumables Supplier",
+    "Aadrik Distributors Pvt. Ltd. is a Chennai-based supplier of RASI Electrodes, welding consumables, MIG/TIG wire, abrasives, and industrial safety products, with an AI assistant for instant product guidance and quotations."
+  );
+
   const { catalog, loading, error } = useProductCatalog();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
@@ -95,6 +101,9 @@ export default function Home() {
               <p className="tw-mt-6 tw-max-w-lg tw-text-lg tw-leading-relaxed tw-text-white/70">
                 Helping customers choose the right products, generate quotations, and
                 connect instantly with our sales team.
+              </p>
+              <p className="tw-mt-3 tw-max-w-lg tw-text-sm tw-font-medium tw-text-white/60">
+                Stockists of RASI Electrodes and other trusted welding brands.
               </p>
             </Reveal>
 

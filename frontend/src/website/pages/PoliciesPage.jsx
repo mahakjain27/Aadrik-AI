@@ -7,6 +7,7 @@ import {
 } from "react-icons/fa";
 
 import Reveal from "../components/Reveal";
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
 
 const POLICIES = [
   {
@@ -37,6 +38,11 @@ const POLICIES = [
 ];
 
 export default function PoliciesPage() {
+  useDocumentMeta(
+    "Policies | Aadrik Distributors Pvt. Ltd.",
+    "Return, replacement, payment, delivery and cancellation policies for orders with Aadrik Distributors Pvt. Ltd."
+  );
+
   return (
     <section className="tw-mx-auto tw-max-w-6xl tw-px-6 tw-py-20 lg:tw-px-10">
       <Reveal className="tw-text-center">

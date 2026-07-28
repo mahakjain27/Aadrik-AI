@@ -6,9 +6,15 @@ import CategoryCard from "../components/CategoryCard";
 import ProductCard from "../components/ProductCard";
 import ProductDetailModal from "../components/ProductDetailModal";
 import { useProductCatalog } from "../hooks/useProductCatalog";
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
 import { productSearchText } from "../utils/productDisplay";
 
 export default function ProductsPage() {
+  useDocumentMeta(
+    "Products | RASI Electrodes, Welding Wire & Consumables - Aadrik Distributors",
+    "Browse RASI Electrodes, MIG/TIG welding wire, abrasives, and industrial safety products from Aadrik Distributors Pvt. Ltd., Chennai."
+  );
+
   const { catalog, loading, error } = useProductCatalog();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);

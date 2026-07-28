@@ -1,6 +1,7 @@
 import { FaBullseye, FaEye, FaHistory, FaIndustry } from "react-icons/fa";
 
 import Reveal from "../components/Reveal";
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
 
 const SECTIONS = [
   {
@@ -26,6 +27,11 @@ const SECTIONS = [
 ];
 
 export default function CompanyPage() {
+  useDocumentMeta(
+    "About Us | Aadrik Distributors Pvt. Ltd.",
+    "Aadrik Distributors Pvt. Ltd. is a trusted Chennai-based distributor of RASI Electrodes and industrial welding supplies, serving fabricators and manufacturers across India."
+  );
+
   return (
     <section className="tw-mx-auto tw-max-w-5xl tw-px-6 tw-py-20 lg:tw-px-10">
       <Reveal className="tw-text-center">
