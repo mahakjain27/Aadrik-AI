@@ -164,8 +164,16 @@ export default function ContactPage() {
             </dl>
           </div>
 
-          <div className="tw-flex tw-min-h-[220px] tw-flex-1 tw-items-center tw-justify-center tw-rounded-2xl tw-border tw-border-aadrik-charcoal/10 tw-bg-white tw-text-sm tw-text-aadrik-charcoal/40">
-            Google Maps embed placeholder
+          <div className="tw-min-h-[220px] tw-flex-1 tw-overflow-hidden tw-rounded-2xl tw-border tw-border-aadrik-charcoal/10 tw-bg-white">
+            <iframe
+              title="Aadrik Distributors location"
+              src="https://maps.google.com/maps?q=79C%2C%20Nattupilliar%20Koil%20Street%2C%20Maskan%20Chavadi%2C%20Seven%20Wells%20South%2C%20George%20Town%2C%20Chennai%2C%20Tamil%20Nadu%20600001%2C%20India&output=embed"
+              width="100%"
+              height="100%"
+              style={{ border: 0, minHeight: 220 }}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
           </div>
         </Reveal>
       </div>

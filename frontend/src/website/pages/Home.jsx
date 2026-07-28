@@ -340,8 +340,16 @@ export default function Home() {
           </Reveal>
 
           <Reveal delay={120}>
-            <div className="tw-flex tw-h-full tw-min-h-[280px] tw-items-center tw-justify-center tw-rounded-2xl tw-border tw-border-aadrik-charcoal/10 tw-bg-white tw-text-sm tw-text-aadrik-charcoal/40">
-              Google Maps embed placeholder
+            <div className="tw-h-full tw-min-h-[280px] tw-overflow-hidden tw-rounded-2xl tw-border tw-border-aadrik-charcoal/10 tw-bg-white">
+              <iframe
+                title="Aadrik Distributors location"
+                src="https://maps.google.com/maps?q=79C%2C%20Nattupilliar%20Koil%20Street%2C%20Maskan%20Chavadi%2C%20Seven%20Wells%20South%2C%20George%20Town%2C%20Chennai%2C%20Tamil%20Nadu%20600001%2C%20India&output=embed"
+                width="100%"
+                height="100%"
+                style={{ border: 0, minHeight: 280 }}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </div>
           </Reveal>
         </div>
