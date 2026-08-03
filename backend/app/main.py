@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.activity import router as activity_router
+from app.api.catalog import router as catalog_router
 from app.api.chat import router as chat_router
 from app.api.crm import router as crm_router
 from app.api.customers import router as customers_router
@@ -49,6 +50,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(catalog_router)
 app.include_router(chat_router)
 app.include_router(products_router)
 app.include_router(sessions_router)

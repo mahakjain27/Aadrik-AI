@@ -81,6 +81,13 @@ class Settings:
     # e.g. the ngrok tunnel URL during local testing) ---
     public_base_url: str = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
 
+    # --- Public marketing site origin (the React frontend, e.g.
+    # https://aadrik.co.in) - distinct from public_base_url, which points
+    # at this backend's own API. Used for the /catalog.csv feed's `link`
+    # and `image_link` columns, which must point customers at the website,
+    # not the API. ---
+    site_base_url: str = os.getenv("SITE_BASE_URL", "https://aadrik.co.in").rstrip("/")
+
 settings = Settings()
 
 

@@ -106,6 +106,7 @@ Environment variables (create `backend/app/.env`):
 | `WHATSAPP_BUSINESS_ACCOUNT_ID` | *(unset)* | Meta WhatsApp Business Account id |
 | `WHATSAPP_VERIFY_TOKEN` | *(unset)* | Shared secret used to verify the `/webhook/whatsapp` subscription with Meta |
 | `PUBLIC_BASE_URL` | *(unset)* | Publicly reachable base URL (e.g. via `cloudflared`) used to build the `/quote` link sent to WhatsApp customers — without it, WhatsApp quotation requests are disabled |
+| `SITE_BASE_URL` | `https://aadrik.co.in` | The public marketing site's origin (not this API) — used to build `link`/`image_link` in the `/catalog.csv` feed consumed by Meta's Commerce Manager for the WhatsApp catalog |
 
 ## Running the frontend
 

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { FaArrowLeft, FaSearch } from "react-icons/fa";
 
 import Reveal from "../components/Reveal";
@@ -16,8 +17,14 @@ export default function ProductsPage() {
   );
 
   const { catalog, loading, error } = useProductCatalog();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  // Seeded from ?category= so external links (e.g. the WhatsApp/Meta
+  // catalog feed - see backend/app/services/catalog_feed_service.py) can
+  // deep-link straight into a category instead of the top-level grid.
+  const [selectedCategory, setSelectedCategory] = useState(
+    () => searchParams.get("category") || null
+  );
   const [activeProduct, setActiveProduct] = useState(null);
 
   const isSearching = search.trim().length > 0;
@@ -48,11 +55,13 @@ export default function ProductsPage() {
   function openCategory(category) {
     setSelectedCategory(category);
     setSearch("");
+    setSearchParams({ category });
   }
 
   function backToCategories() {
     setSelectedCategory(null);
     setSearch("");
+    setSearchParams({});
   }
 
   const showCategoryGrid = !isSearching && !selectedCategory;
