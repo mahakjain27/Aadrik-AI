@@ -29,6 +29,7 @@ CSV_FIELDS = [
     "link",
     "image_link",
     "brand",
+    "product_type",
 ]
 
 
@@ -101,6 +102,11 @@ def generate_catalog_csv() -> str:
                 "link": _category_link(row["category"]),
                 "image_link": _category_image_link(row["category"]),
                 "brand": row["brand"] or "Aadrik Distributors",
+                # Lets Commerce Manager "Sets" auto-group products into
+                # browsable categories in the WhatsApp catalog (rule:
+                # product_type equals <category>) - mirrors the website's
+                # category-first browsing instead of one flat product list.
+                "product_type": row["category"] or "",
             }
         )
 
