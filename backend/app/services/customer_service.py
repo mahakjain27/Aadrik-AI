@@ -145,3 +145,40 @@ def update_customer(customer_id: int, request: UpdateCustomerRequest, current_us
     )
 
     return get_customer(customer_id)
+
+
+def delete_customer(customer_id: int, current_user):
+    conn = get_conn()
+
+    existing = conn.execute(
+        "SELECT id, company_name FROM customers WHERE id = ?",
+        (customer_id,),
+    ).fetchone()
+
+    if existing is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Customer not found.",
+        )
+
+    with write_lock:
+        # quotations.customer_id REFERENCES customers(id) with foreign_keys
+        # ON and no ON DELETE clause - deleting the customer row directly
+        # would fail while quotations still point at it. Unlinking instead
+        # of cascading keeps the quotation/lead history intact (each row
+        # already carries its own company_name/phone snapshot), just
+        # detached from this customer record.
+        conn.execute(
+            "UPDATE quotations SET customer_id = NULL WHERE customer_id = ?",
+            (customer_id,),
+        )
+        conn.execute("DELETE FROM customers WHERE id = ?", (customer_id,))
+        conn.commit()
+
+    log_activity(
+        actor_id=current_user["id"],
+        action="customer.deleted",
+        entity_type="customer",
+        entity_id=customer_id,
+        message=f"{current_user['name']} deleted customer {existing['company_name']}.",
+    )

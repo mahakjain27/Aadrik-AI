@@ -30,3 +30,11 @@ def update_customer(
     current_user=Depends(require_roles("admin", "sales", "manager")),
 ):
     return customer_service.update_customer(customer_id, request, current_user)
+
+
+@router.delete("/{customer_id}", status_code=204)
+def delete_customer(
+    customer_id: int,
+    current_user=Depends(require_roles("admin", "manager")),
+):
+    customer_service.delete_customer(customer_id, current_user)

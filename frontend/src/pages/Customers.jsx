@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { Table, Modal, Button, Form, Alert, Badge } from "react-bootstrap";
-import { getCustomers, getCustomer, updateCustomer, getAssignees } from "../services/api";
+import {
+  getCustomers,
+  getCustomer,
+  updateCustomer,
+  deleteCustomer,
+  getAssignees,
+} from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 function errorMessage(err, fallback) {
   return err.response?.data?.message || fallback;
@@ -230,11 +237,15 @@ function CustomerDetailsModal({ customerId, assignees, onClose, onSaved }) {
 }
 
 export default function Customers() {
+  const { user } = useAuth();
+  const canDelete = user?.role === "admin" || user?.role === "manager";
+
   const [customers, setCustomers] = useState([]);
   const [assignees, setAssignees] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   async function loadCustomers(query) {
     setLoading(true);
@@ -256,6 +267,25 @@ export default function Customers() {
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
+
+  async function handleDelete(customer) {
+    const warning =
+      customer.total_quotations > 0
+        ? ` This customer has ${customer.total_quotations} quotation(s) - they'll be kept but unlinked from this customer record.`
+        : "";
+
+    if (!window.confirm(`Delete ${customer.company_name}?${warning}`)) return;
+
+    setDeletingId(customer.id);
+    try {
+      await deleteCustomer(customer.id);
+      await loadCustomers(search);
+    } catch (err) {
+      window.alert(errorMessage(err, "Could not delete customer."));
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div className="container mt-4" style={{ paddingBottom: "32px" }}>
@@ -318,14 +348,26 @@ export default function Customers() {
                   <TagList tags={c.tags} />
                 </td>
                 <td>
-                  <Button
-                    size="sm"
-                    variant="light"
-                    className="border"
-                    onClick={() => setSelectedId(c.id)}
-                  >
-                    View details
-                  </Button>
+                  <div className="d-flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="light"
+                      className="border"
+                      onClick={() => setSelectedId(c.id)}
+                    >
+                      View details
+                    </Button>
+                    {canDelete && (
+                      <Button
+                        size="sm"
+                        variant="outline-danger"
+                        disabled={deletingId === c.id}
+                        onClick={() => handleDelete(c)}
+                      >
+                        {deletingId === c.id ? "Deleting..." : "Delete"}
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

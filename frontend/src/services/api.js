@@ -227,6 +227,10 @@ export async function updateCustomer(id, data) {
   return response.data;
 }
 
+export async function deleteCustomer(id) {
+  await api.delete(`/customers/${id}`);
+}
+
 export async function getPolicies() {
   const response = await api.get("/knowledge/policies");
   return response.data;
