@@ -7,6 +7,7 @@ from app.core.logging import setup_logger
 from app.database import queries
 from app.schemas.session import SessionMessage, SessionMessagesResponse, SessionSummary
 from app.services.activity_log import log_activity
+from app.services.whatsapp_service import send_whatsapp_message
 
 logger = setup_logger(__name__)
 
@@ -291,6 +292,21 @@ def sales_reply(session_id: str, message: str) -> None:
 
     if session["status"] in ("Waiting for Sales", "AI Handling"):
         queries.update_session_status(session_id, "Open")
+
+    # insert_sales_reply above only saves the reply for the Sales Inbox UI -
+    # for a real WhatsApp conversation it still has to be pushed to the
+    # customer's phone via the Cloud API, or they never actually see it.
+    if session["channel"] == "whatsapp" and session["customer_phone"]:
+        wamid = send_whatsapp_message(session["customer_phone"], message)
+
+        if wamid is None:
+            logger.warning(
+                f"Sales reply saved but WhatsApp delivery failed | session={session_id}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Reply saved, but WhatsApp delivery failed - the customer may not have received it.",
+            )
 
 
 def close_session(session_id: str) -> None:

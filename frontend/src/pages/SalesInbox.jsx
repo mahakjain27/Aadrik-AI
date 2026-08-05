@@ -341,11 +341,13 @@ export default function SalesInbox({ pendingSessionId, onConsumePending }) {
     try {
       await sendSalesReply(selectedId, reply);
       setReply("");
+    } catch (err) {
+      window.alert(err.response?.data?.message || "Could not send reply.");
+    } finally {
       await Promise.all([
         loadConversation(selectedId),
         refreshSessions(),
       ]);
-    } finally {
       setSending(false);
     }
   }
