@@ -3,6 +3,7 @@ import { useEffect } from "react";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import WhatsAppMoveBanner from "../components/WhatsAppMoveBanner";
 import logoWatermark from "../../assets/logo-watermark.png";
 
 export default function PublicLayout() {
@@ -17,6 +18,7 @@ export default function PublicLayout() {
       <div className="aadrik-watermark" aria-hidden="true">
         <img src={logoWatermark} alt="" />
       </div>
+      <WhatsAppMoveBanner />
       <Navbar />
       <main className="tw-flex-1">
         <Outlet />
