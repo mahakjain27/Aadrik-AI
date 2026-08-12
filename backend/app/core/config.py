@@ -77,6 +77,20 @@ class Settings:
         "WHATSAPP_CONTACT_TEMPLATE_LANG", "en_US"
     )
 
+    # Pre-approved Meta template used by Sales Inbox's "+ New Conversation"
+    # to business-initiate a WhatsApp chat with a number that hasn't
+    # messaged in (or ever) - Meta requires a template outside the 24h
+    # customer-service window, a freeform message isn't allowed. This is a
+    # SEPARATE template from whatsapp_contact_template_name (that one is
+    # worded for "we got your form submission", not cold outreach) and
+    # must be created and approved in Meta Business Manager before use.
+    whatsapp_sales_template_name: str = os.getenv(
+        "WHATSAPP_SALES_TEMPLATE_NAME", "sales_introduction"
+    )
+    whatsapp_sales_template_lang: str = os.getenv(
+        "WHATSAPP_SALES_TEMPLATE_LANG", "en"
+    )
+
     # --- Public origin (used to build links sent to WhatsApp customers,
     # e.g. the ngrok tunnel URL during local testing) ---
     public_base_url: str = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")

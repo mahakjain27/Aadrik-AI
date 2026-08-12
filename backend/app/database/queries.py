@@ -273,6 +273,20 @@ def get_active_session_by_phone(phone: str, channel: str) -> sqlite3.Row | None:
     ).fetchone()
 
 
+def get_last_customer_message_at(session_id: str) -> str | None:
+    """Latest inbound (role='user') message timestamp for a session - used
+    to determine whether Meta's 24h customer-service window is still open
+    for a business-initiated reply."""
+    conn = get_conn()
+
+    row = conn.execute(
+        "SELECT MAX(created_at) AS last_at FROM messages WHERE session_id = ? AND role = 'user'",
+        (session_id,),
+    ).fetchone()
+
+    return row["last_at"] if row else None
+
+
 def get_or_create_customer(
     phone: str,
     company_name: str,

@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from app.middleware.auth import get_current_user, require_roles
 from app.schemas.session import (
     AssignSessionRequest,
+    CheckWhatsAppNumberRequest,
+    CheckWhatsAppNumberResponse,
     SalesReplyRequest,
+    SendWhatsAppTemplateRequest,
+    SendWhatsAppTemplateResponse,
     SessionAIAssist,
     SessionMessagesResponse,
     SessionSummary,
@@ -12,6 +16,7 @@ from app.services.ai_service import generate_session_assist
 from app.services.session_service import (
     archive_session,
     assign_session_to,
+    check_whatsapp_number,
     close_session,
     delete_closed_sessions,
     delete_session,
@@ -24,6 +29,8 @@ from app.services.session_service import (
     mark_session_read,
     reopen_session,
     sales_reply,
+    send_sales_attachment,
+    send_whatsapp_outreach,
     unarchive_session,
 )
 
@@ -162,6 +169,55 @@ def reply(
     sales_reply(session_id, body.message)
 
     return {"success": True}
+
+
+@router.post("/sessions/{session_id}/reply-attachment")
+async def reply_with_attachment(
+    session_id: str,
+    file: UploadFile = File(...),
+    caption: str | None = Form(None),
+    current_user = Depends(require_roles(
+        "admin",
+        "manager",
+        "sales",
+    )),
+):
+    contents = await file.read()
+
+    send_sales_attachment(
+        session_id,
+        current_user,
+        contents,
+        file.filename,
+        file.content_type,
+        caption,
+    )
+
+    return {"success": True}
+
+
+@router.post("/sessions/whatsapp/check", response_model=CheckWhatsAppNumberResponse)
+def check_whatsapp_number_route(
+    body: CheckWhatsAppNumberRequest,
+    current_user = Depends(require_roles(
+        "admin",
+        "manager",
+        "sales",
+    )),
+):
+    return check_whatsapp_number(body.phone)
+
+
+@router.post("/sessions/whatsapp/send-template", response_model=SendWhatsAppTemplateResponse)
+def send_whatsapp_template_route(
+    body: SendWhatsAppTemplateRequest,
+    current_user = Depends(require_roles(
+        "admin",
+        "manager",
+        "sales",
+    )),
+):
+    return send_whatsapp_outreach(body.phone, current_user)
 
 
 @router.post("/sessions/{session_id}/close")

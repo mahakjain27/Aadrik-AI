@@ -47,3 +47,22 @@ class AssignSessionRequest(BaseModel):
 class SessionAIAssist(BaseModel):
     summary: str
     suggested_reply: str
+
+
+class CheckWhatsAppNumberRequest(BaseModel):
+    phone: str
+
+
+class CheckWhatsAppNumberResponse(BaseModel):
+    session_id: str | None = None
+    customer_phone: str
+    window_open: bool
+    is_new: bool
+
+
+class SendWhatsAppTemplateRequest(BaseModel):
+    phone: str
+
+
+class SendWhatsAppTemplateResponse(BaseModel):
+    session_id: str

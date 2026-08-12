@@ -325,6 +325,31 @@ export async function sendSalesReply(sessionId, message) {
   return response.data;
 }
 
+export async function checkWhatsAppNumber(phone) {
+  const response = await api.post("/sessions/whatsapp/check", { phone });
+  return response.data;
+}
+
+export async function sendWhatsAppTemplate(phone) {
+  const response = await api.post("/sessions/whatsapp/send-template", { phone });
+  return response.data;
+}
+
+export async function sendSalesAttachment(sessionId, file, caption) {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (caption) formData.append("caption", caption);
+
+  const response = await api.post(`/sessions/${sessionId}/reply-attachment`, formData, {
+    // Letting axios's default JSON content-type through here would send
+    // the multipart body without its boundary, so the backend can't parse
+    // it - unsetting it lets the browser fill in the correct
+    // "multipart/form-data; boundary=..." header itself.
+    headers: { "Content-Type": undefined },
+  });
+  return response.data;
+}
+
 export async function getSessionAIAssist(sessionId) {
   const response = await api.post(`/sessions/${sessionId}/ai-assist`);
   return response.data;
