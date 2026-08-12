@@ -173,9 +173,9 @@ function CustomerField({ label, value }) {
 }
 
 const SALES_TEMPLATE_PREVIEW =
-  "Hi, this is Aadrik Distributors. We supply welding consumables and " +
-  "would be happy to assist with your requirements. Please let us know " +
-  "if you currently have any requirements we can help with.";
+  "Hi, this is Aadrik AI from Aadrik Distributors. We supply welding " +
+  "consumables and would be happy to assist with your requirements. " +
+  "Please let us know if you currently have any requirements we can help with.";
 
 function NewConversationModal({ show, onClose, onStarted }) {
   const [phone, setPhone] = useState("");
