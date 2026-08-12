@@ -31,6 +31,7 @@ class QuotationResponse(BaseModel):
 class QuotationPricingRequest(BaseModel):
     unit_price: float
     gst_percent: float = 18.0
+    discount_percent: float = 0.0
 
 
 class QuotationRejectRequest(BaseModel):

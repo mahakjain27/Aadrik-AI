@@ -18,6 +18,7 @@ from reportlab.platypus import (
 )
 
 from app.core.company import COMPANY
+from app.services.lead_scoring import _parse_quantity
 
 NAVY = colors.HexColor("#1F3B64")
 BORDER_GREY = colors.HexColor("#c9ccd1")
@@ -351,36 +352,71 @@ def generate_quotation_pdf(lead):
     gst_amount = round(subtotal * gst_rate / 100, 2) if subtotal is not None else None
     grand_total = round(subtotal + gst_amount, 2) if subtotal is not None else None
 
-    totals = Table(
+    discount_percent = lead["discount_percent"] or 0
+    quantity_number = _parse_quantity(lead["quantity"])
+    original_amount = (
+        round(lead["unit_price"] * quantity_number, 2)
+        if lead["unit_price"] is not None and quantity_number
+        else None
+    )
+    discount_amount = (
+        round(original_amount * discount_percent / 100, 2)
+        if original_amount is not None and discount_percent
+        else None
+    )
+
+    totals_rows = []
+
+    if original_amount is not None and discount_percent:
+        totals_rows.append(
+            [
+                Paragraph("Original Price", totals_label_style),
+                Paragraph(f"Rs. {original_amount:.2f}", totals_value_style),
+            ]
+        )
+        totals_rows.append(
+            [
+                Paragraph(f"Discount ({discount_percent}%)", totals_label_style),
+                Paragraph(f"- Rs. {discount_amount:.2f}", totals_value_style),
+            ]
+        )
+
+    totals_rows.append(
         [
-            [
-                Paragraph("Subtotal", totals_label_style),
-                Paragraph(
-                    f"Rs. {subtotal:.2f}" if subtotal is not None else "-",
-                    totals_value_style,
-                ),
-            ],
-            [
-                Paragraph(f"GST ({gst_rate}%)", totals_label_style),
-                Paragraph(
-                    f"Rs. {gst_amount:.2f}" if gst_amount is not None else "-",
-                    totals_value_style,
-                ),
-            ],
-            [
-                Paragraph("Grand Total", totals_label_style),
-                Paragraph(
-                    f"Rs. {grand_total:.2f}" if grand_total is not None else "-",
-                    totals_value_style,
-                ),
-            ],
-        ],
+            Paragraph("Subtotal", totals_label_style),
+            Paragraph(
+                f"Rs. {subtotal:.2f}" if subtotal is not None else "-",
+                totals_value_style,
+            ),
+        ]
+    )
+    totals_rows.append(
+        [
+            Paragraph(f"GST ({gst_rate}%)", totals_label_style),
+            Paragraph(
+                f"Rs. {gst_amount:.2f}" if gst_amount is not None else "-",
+                totals_value_style,
+            ),
+        ]
+    )
+    totals_rows.append(
+        [
+            Paragraph("Grand Total", totals_label_style),
+            Paragraph(
+                f"Rs. {grand_total:.2f}" if grand_total is not None else "-",
+                totals_value_style,
+            ),
+        ]
+    )
+
+    totals = Table(
+        totals_rows,
         colWidths=[width * 0.80, width * 0.20],
     )
     totals.setStyle(
         TableStyle(
             [
-                ("LINEABOVE", (0, 2), (-1, 2), 0.75, BORDER_GREY),
+                ("LINEABOVE", (0, len(totals_rows) - 1), (-1, len(totals_rows) - 1), 0.75, BORDER_GREY),
                 ("TOPPADDING", (0, 0), (-1, -1), 4),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 8),

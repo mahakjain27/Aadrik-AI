@@ -363,6 +363,9 @@ def _migrate_quotations_columns() -> None:
         "gst_percent":
             "ALTER TABLE quotations ADD COLUMN gst_percent REAL",
 
+        "discount_percent":
+            "ALTER TABLE quotations ADD COLUMN discount_percent REAL NOT NULL DEFAULT 0",
+
         "subtotal":
             "ALTER TABLE quotations ADD COLUMN subtotal REAL",
 

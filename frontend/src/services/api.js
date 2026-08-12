@@ -142,10 +142,11 @@ export async function downloadQuotationPdf(id) {
   return response.data;
 }
 
-export async function setQuotationPricing(id, unitPrice, gstPercent) {
+export async function setQuotationPricing(id, unitPrice, gstPercent, discountPercent = 0) {
   const response = await api.put(`/quotation/${id}/pricing`, {
     unit_price: unitPrice,
     gst_percent: gstPercent,
+    discount_percent: discountPercent,
   });
 
   return response.data;

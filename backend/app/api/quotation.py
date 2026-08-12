@@ -213,7 +213,9 @@ def set_pricing(
             detail="Cannot compute pricing: this quotation's quantity has no numeric value.",
         )
 
-    subtotal = round(body.unit_price * quantity_number, 2)
+    original_subtotal = round(body.unit_price * quantity_number, 2)
+    discount_amount = round(original_subtotal * body.discount_percent / 100, 2)
+    subtotal = round(original_subtotal - discount_amount, 2)
     gst_amount = round(subtotal * body.gst_percent / 100, 2)
     grand_total = round(subtotal + gst_amount, 2)
 
@@ -221,10 +223,16 @@ def set_pricing(
         conn.execute(
             """
             UPDATE quotations
-            SET unit_price = ?, gst_percent = ?, subtotal = ?
+            SET unit_price = ?, gst_percent = ?, discount_percent = ?, subtotal = ?
             WHERE id = ?
             """,
-            (body.unit_price, body.gst_percent, subtotal, quotation_id),
+            (
+                body.unit_price,
+                body.gst_percent,
+                body.discount_percent,
+                subtotal,
+                quotation_id,
+            ),
         )
         conn.commit()
 
@@ -232,6 +240,9 @@ def set_pricing(
         "success": True,
         "unit_price": body.unit_price,
         "gst_percent": body.gst_percent,
+        "discount_percent": body.discount_percent,
+        "original_subtotal": original_subtotal,
+        "discount_amount": discount_amount,
         "subtotal": subtotal,
         "gst_amount": gst_amount,
         "grand_total": grand_total,

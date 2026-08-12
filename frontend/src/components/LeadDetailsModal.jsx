@@ -46,6 +46,7 @@ export default function LeadDetailsModal({
   const [local, setLocal] = useState(lead);
   const [unitPrice, setUnitPrice] = useState("");
   const [gstPercent, setGstPercent] = useState("18");
+  const [discountPercent, setDiscountPercent] = useState("0");
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -56,6 +57,9 @@ export default function LeadDetailsModal({
     setLocal(lead);
     setUnitPrice(lead?.unit_price != null ? String(lead.unit_price) : "");
     setGstPercent(lead?.gst_percent != null ? String(lead.gst_percent) : "18");
+    setDiscountPercent(
+      lead?.discount_percent != null ? String(lead.discount_percent) : "0"
+    );
     setRejectReason("");
     setShowRejectForm(false);
     setError(null);
@@ -84,7 +88,12 @@ export default function LeadDetailsModal({
 
   async function handleSavePricing() {
     const result = await runAction(() =>
-      setQuotationPricing(local.id, Number(unitPrice), Number(gstPercent))
+      setQuotationPricing(
+        local.id,
+        Number(unitPrice),
+        Number(gstPercent),
+        Number(discountPercent)
+      )
     );
 
     if (result) {
@@ -103,7 +112,12 @@ export default function LeadDetailsModal({
     // sales rep doesn't have to remember to click "Save Pricing" separately
     // before this button will do anything.
     const pricingResult = await runAction(() =>
-      setQuotationPricing(local.id, Number(unitPrice), Number(gstPercent))
+      setQuotationPricing(
+        local.id,
+        Number(unitPrice),
+        Number(gstPercent),
+        Number(discountPercent)
+      )
     );
 
     if (!pricingResult) return;
@@ -169,6 +183,21 @@ export default function LeadDetailsModal({
       onUpdated?.();
     }
   }
+
+  const quantityNumber = (() => {
+    const match = String(local.quantity || "").match(/[\d.]+/);
+    return match ? Number(match[0]) : null;
+  })();
+
+  const originalAmount =
+    local.unit_price != null && quantityNumber != null
+      ? Math.round(local.unit_price * quantityNumber * 100) / 100
+      : null;
+
+  const discountAmount =
+    originalAmount != null && local.discount_percent
+      ? Math.round(((originalAmount * local.discount_percent) / 100) * 100) / 100
+      : null;
 
   const gstAmount =
     local.subtotal != null && local.gst_percent != null
@@ -416,7 +445,7 @@ export default function LeadDetailsModal({
 
         {canEditPricing && (
           <Form className="row g-2 align-items-end mb-3">
-            <Form.Group className="col-sm-4">
+            <Form.Group className="col-sm-3">
               <Form.Label className="small mb-1">Unit Price (Rs.)</Form.Label>
               <Form.Control
                 type="number"
@@ -428,6 +457,18 @@ export default function LeadDetailsModal({
             </Form.Group>
 
             <Form.Group className="col-sm-3">
+              <Form.Label className="small mb-1">Discount %</Form.Label>
+              <Form.Control
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={discountPercent}
+                onChange={(e) => setDiscountPercent(e.target.value)}
+              />
+            </Form.Group>
+
+            <Form.Group className="col-sm-2">
               <Form.Label className="small mb-1">GST %</Form.Label>
               <Form.Control
                 type="number"
@@ -438,7 +479,7 @@ export default function LeadDetailsModal({
               />
             </Form.Group>
 
-            <div className="col-sm-5 d-flex gap-2">
+            <div className="col-sm-4 d-flex gap-2">
               <Button
                 size="sm"
                 variant="outline-primary"
@@ -463,6 +504,20 @@ export default function LeadDetailsModal({
         {local.subtotal != null && (
           <Table size="sm" borderless className="mb-3" style={{ maxWidth: 320 }}>
             <tbody>
+              {originalAmount != null && local.discount_percent ? (
+                <>
+                  <tr>
+                    <td>Original Price</td>
+                    <td className="text-end">Rs. {originalAmount.toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td>Discount ({local.discount_percent}%)</td>
+                    <td className="text-end text-danger">
+                      - Rs. {discountAmount.toFixed(2)}
+                    </td>
+                  </tr>
+                </>
+              ) : null}
               <tr>
                 <td>Subtotal</td>
                 <td className="text-end">Rs. {local.subtotal.toFixed(2)}</td>
