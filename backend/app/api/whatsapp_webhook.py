@@ -59,8 +59,18 @@ async def receive_webhook(request: Request, background_tasks: BackgroundTasks):
         for change in entry.get("changes", []):
             value = change.get("value", {})
 
+            # Meta sends the sender's own WhatsApp display name alongside
+            # the message, keyed by their wa_id (same value as "from" on
+            # the message itself) - not the sender's phone number field.
+            contact_names = {
+                contact["wa_id"]: contact["profile"]["name"]
+                for contact in value.get("contacts", [])
+                if contact.get("wa_id") and contact.get("profile", {}).get("name")
+            }
+
             for message in value.get("messages", []):
-                _handle_incoming_message(message, background_tasks)
+                contact_name = contact_names.get(message.get("from"))
+                _handle_incoming_message(message, background_tasks, contact_name)
 
             for status_update in value.get("statuses", []):
                 _handle_status_update(status_update)
@@ -86,7 +96,9 @@ def _handle_status_update(status_update: dict) -> None:
     queries.update_quotation_whatsapp_status(wamid, status)
 
 
-def _handle_incoming_message(message: dict, background_tasks: BackgroundTasks) -> None:
+def _handle_incoming_message(
+    message: dict, background_tasks: BackgroundTasks, contact_name: str | None = None
+) -> None:
     wamid = message.get("id")
     phone = message.get("from")
     msg_type = message.get("type")
@@ -100,7 +112,7 @@ def _handle_incoming_message(message: dict, background_tasks: BackgroundTasks) -
         return
 
     if msg_type == "interactive":
-        _handle_interactive_reply(message, phone, wamid)
+        _handle_interactive_reply(message, phone, wamid, contact_name)
         return
 
     if msg_type != "text":
@@ -112,7 +124,7 @@ def _handle_incoming_message(message: dict, background_tasks: BackgroundTasks) -
     if not text:
         return
 
-    session_id = resolve_whatsapp_session(phone, text)
+    session_id = resolve_whatsapp_session(phone, text, contact_name)
 
     if text.lower() in MENU_KEYWORDS:
         queries.insert_message(session_id, "user", text, wamid=wamid)
@@ -128,7 +140,9 @@ def _handle_incoming_message(message: dict, background_tasks: BackgroundTasks) -
     background_tasks.add_task(_reply_and_send, session_id, text, history, phone)
 
 
-def _handle_interactive_reply(message: dict, phone: str, wamid: str | None) -> None:
+def _handle_interactive_reply(
+    message: dict, phone: str, wamid: str | None, contact_name: str | None = None
+) -> None:
     interactive = message.get("interactive", {})
 
     if interactive.get("type") != "list_reply":
@@ -139,7 +153,7 @@ def _handle_interactive_reply(message: dict, phone: str, wamid: str | None) -> N
     row_id = list_reply["id"]
     row_title = list_reply.get("title", row_id)
 
-    session_id = resolve_whatsapp_session(phone, row_title)
+    session_id = resolve_whatsapp_session(phone, row_title, contact_name)
     queries.insert_message(session_id, "user", f"Selected: {row_title}", wamid=wamid)
 
     parts = row_id.split("|")

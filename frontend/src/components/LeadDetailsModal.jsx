@@ -304,6 +304,7 @@ export default function LeadDetailsModal({
       onHide={onClose}
       size="lg"
       centered
+      scrollable
     >
       <Modal.Header closeButton>
         <Modal.Title>

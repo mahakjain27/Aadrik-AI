@@ -485,6 +485,9 @@ def _migrate_sessions_columns() -> None:
 
         "is_archived":
             "ALTER TABLE sessions ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0",
+
+        "customer_name":
+            "ALTER TABLE sessions ADD COLUMN customer_name TEXT",
     }
 
     with write_lock:

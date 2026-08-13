@@ -144,16 +144,25 @@ def resolve_session(
     return new_session_id
 
 
-def resolve_whatsapp_session(phone: str, first_message: str) -> str:
+def resolve_whatsapp_session(
+    phone: str, first_message: str, customer_name: str | None = None
+) -> str:
     """Returns a valid session_id for an inbound WhatsApp message from
     `phone`, reusing the customer's existing open conversation if there is
     one, else starting a new one. There's no logged-in internal user_id for
     an external WhatsApp customer, so the phone number doubles as user_id -
-    sessions.user_id has no FK constraint, it's just an identity key."""
+    sessions.user_id has no FK constraint, it's just an identity key.
+
+    customer_name is the customer's own WhatsApp profile name, sent by Meta
+    alongside every inbound message - it's the best name Sales Inbox can
+    show when no CRM record exists yet for this phone number."""
 
     existing = queries.get_active_session_by_phone(phone, "whatsapp")
 
     if existing is not None:
+        if customer_name:
+            queries.update_session_customer_name_if_missing(existing["id"], customer_name)
+
         logger.info(f"Using existing WhatsApp session: {existing['id']}")
         return existing["id"]
 
@@ -165,6 +174,7 @@ def resolve_whatsapp_session(phone: str, first_message: str) -> str:
         make_title(first_message),
         customer_phone=phone,
         channel="whatsapp",
+        customer_name=customer_name,
     )
 
     logger.info(f"Created new WhatsApp session: {new_session_id}")
@@ -237,6 +247,7 @@ def create_contact_session(
         customer_phone=phone,
         channel="website",
         status="Waiting for Sales",
+        customer_name=name,
     )
 
     queries.insert_message(new_session_id, "user", "\n".join(lines))

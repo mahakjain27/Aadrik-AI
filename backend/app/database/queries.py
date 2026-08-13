@@ -32,6 +32,7 @@ def create_session(
     channel: str = "internal",
     status: str = "Open",
     assigned_to: int | None = None,
+    customer_name: str | None = None,
 ) -> None:
     conn = get_conn()
 
@@ -46,10 +47,11 @@ def create_session(
                 customer_phone,
                 channel,
                 status,
-                assigned_to
+                assigned_to,
+                customer_name
             )
             VALUES
-            (?, ?, ?, ?, ?, ?, ?)
+            (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 session_id,
@@ -59,7 +61,29 @@ def create_session(
                 channel,
                 status,
                 assigned_to,
+                customer_name,
             ),
+        )
+
+        _bump_sessions_version(conn)
+        conn.commit()
+
+
+def update_session_customer_name_if_missing(session_id: str, customer_name: str) -> None:
+    """Backfills a WhatsApp profile name onto a session that was created
+    before it was available (or before this field existed) - never
+    overwrites a name that's already set, so it can't clobber something
+    more deliberate."""
+    conn = get_conn()
+
+    with write_lock:
+        conn.execute(
+            """
+            UPDATE sessions
+            SET customer_name = ?
+            WHERE id = ? AND (customer_name IS NULL OR customer_name = '')
+            """,
+            (customer_name, session_id),
         )
 
         _bump_sessions_version(conn)
@@ -110,7 +134,7 @@ def list_sessions_by_status(status: str, viewer_id: int) -> list[sqlite3.Row]:
             sessions.assigned_to,
             sessions.is_archived,
             assignee.name AS assigned_to_name,
-            customers.contact_person AS customer_name,
+            COALESCE(customers.contact_person, sessions.customer_name) AS customer_name,
             customers.company_name AS company_name,
             sessions.updated_at > COALESCE(session_reads.last_read_at, '') AS unread
         FROM sessions
@@ -145,7 +169,7 @@ def list_archived_sessions(viewer_id: int) -> list[sqlite3.Row]:
             sessions.assigned_to,
             sessions.is_archived,
             assignee.name AS assigned_to_name,
-            customers.contact_person AS customer_name,
+            COALESCE(customers.contact_person, sessions.customer_name) AS customer_name,
             customers.company_name AS company_name,
             sessions.updated_at > COALESCE(session_reads.last_read_at, '') AS unread
         FROM sessions
@@ -176,7 +200,7 @@ def list_assigned_unread_sessions(user_id: int) -> list[sqlite3.Row]:
             sessions.assigned_to,
             sessions.is_archived,
             assignee.name AS assigned_to_name,
-            customers.contact_person AS customer_name,
+            COALESCE(customers.contact_person, sessions.customer_name) AS customer_name,
             customers.company_name AS company_name,
             sessions.updated_at > COALESCE(session_reads.last_read_at, '') AS unread
         FROM sessions
@@ -211,7 +235,7 @@ def search_sessions(query: str, viewer_id: int) -> list[sqlite3.Row]:
             sessions.assigned_to,
             sessions.is_archived,
             assignee.name AS assigned_to_name,
-            customers.contact_person AS customer_name,
+            COALESCE(customers.contact_person, sessions.customer_name) AS customer_name,
             customers.company_name AS company_name,
             sessions.updated_at > COALESCE(session_reads.last_read_at, '') AS unread
         FROM sessions
@@ -671,7 +695,7 @@ def get_session_by_id(session_id: str):
         SELECT
             sessions.*,
             assignee.name AS assigned_to_name,
-            customers.contact_person AS customer_name,
+            COALESCE(customers.contact_person, sessions.customer_name) AS customer_name,
             customers.company_name AS company_name
         FROM sessions
         LEFT JOIN users AS assignee ON assignee.id = sessions.assigned_to
