@@ -142,13 +142,22 @@ export async function downloadQuotationPdf(id) {
   return response.data;
 }
 
-export async function setQuotationPricing(id, unitPrice, gstPercent, discountPercent = 0) {
+export async function setQuotationPricing(id, pricing) {
   const response = await api.put(`/quotation/${id}/pricing`, {
-    unit_price: unitPrice,
-    gst_percent: gstPercent,
-    discount_percent: discountPercent,
+    unit_price: pricing.unitPrice,
+    gst_percent: pricing.gstPercent,
+    discount_type: pricing.discountType,
+    discount_percent: pricing.discountPercent,
+    discount_amount: pricing.discountAmount,
+    special_discount_percent: pricing.specialDiscountPercent,
+    special_discount_amount: pricing.specialDiscountAmount,
   });
 
+  return response.data;
+}
+
+export async function getQuotationPriceHistory(id) {
+  const response = await api.get(`/quotation/${id}/price-history`);
   return response.data;
 }
 

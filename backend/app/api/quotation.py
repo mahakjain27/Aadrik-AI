@@ -17,6 +17,7 @@ from app.services.activity_log import log_activity
 from app.services.lead_scoring import _parse_quantity
 from app.services.quotation_email import send_quotation_email
 from app.services.quotation_pdf import generate_quotation_pdf
+from app.services.quotation_pricing import compute_quotation_totals
 from app.services.quotation_whatsapp import send_quotation_whatsapp
 
 APPROVAL_ROLES = ("admin", "sales", "manager")
@@ -213,40 +214,141 @@ def set_pricing(
             detail="Cannot compute pricing: this quotation's quantity has no numeric value.",
         )
 
-    original_subtotal = round(body.unit_price * quantity_number, 2)
-    discount_amount = round(original_subtotal * body.discount_percent / 100, 2)
-    subtotal = round(original_subtotal - discount_amount, 2)
-    gst_amount = round(subtotal * body.gst_percent / 100, 2)
-    grand_total = round(subtotal + gst_amount, 2)
+    totals = compute_quotation_totals(
+        unit_price=body.unit_price,
+        quantity=quantity_number,
+        gst_percent=body.gst_percent,
+        discount_type=body.discount_type,
+        discount_percent=body.discount_percent,
+        discount_amount=body.discount_amount,
+        special_discount_percent=body.special_discount_percent,
+        special_discount_amount=body.special_discount_amount,
+    )
+
+    # A quotation that's already been approved can still be re-priced (people
+    # make mistakes), but the change is significant enough to leave a paper
+    # trail - the frontend gates this behind a confirmation dialog, and we
+    # record what changed here regardless of how the request got confirmed.
+    was_approved = lead["approval_status"] == "Approved"
+    old_grand_total = None
+
+    if was_approved and lead["subtotal"] is not None and lead["gst_percent"] is not None:
+        old_gst_amount = round(lead["subtotal"] * lead["gst_percent"] / 100, 2)
+        old_grand_total = round(lead["subtotal"] + old_gst_amount, 2)
 
     with write_lock:
         conn.execute(
             """
             UPDATE quotations
-            SET unit_price = ?, gst_percent = ?, discount_percent = ?, subtotal = ?
+            SET unit_price = ?,
+                gst_percent = ?,
+                discount_type = ?,
+                discount_percent = ?,
+                discount_amount = ?,
+                special_discount_percent = ?,
+                special_discount_amount = ?,
+                subtotal = ?
             WHERE id = ?
             """,
             (
                 body.unit_price,
                 body.gst_percent,
+                body.discount_type,
                 body.discount_percent,
-                subtotal,
+                body.discount_amount,
+                body.special_discount_percent,
+                body.special_discount_amount,
+                totals["subtotal"],
                 quotation_id,
             ),
         )
+
+        if was_approved:
+            conn.execute(
+                """
+                INSERT INTO quotation_price_history
+                (
+                    quotation_id,
+                    old_unit_price, new_unit_price,
+                    old_discount_type, new_discount_type,
+                    old_discount_percent, new_discount_percent,
+                    old_discount_amount, new_discount_amount,
+                    old_special_discount_percent, new_special_discount_percent,
+                    old_special_discount_amount, new_special_discount_amount,
+                    old_gst_percent, new_gst_percent,
+                    old_grand_total, new_grand_total,
+                    changed_by
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    quotation_id,
+                    lead["unit_price"], body.unit_price,
+                    lead["discount_type"], body.discount_type,
+                    lead["discount_percent"], body.discount_percent,
+                    lead["discount_amount"], body.discount_amount,
+                    lead["special_discount_percent"], body.special_discount_percent,
+                    lead["special_discount_amount"], body.special_discount_amount,
+                    lead["gst_percent"], body.gst_percent,
+                    old_grand_total, totals["grand_total"],
+                    current_user["id"],
+                ),
+            )
+
         conn.commit()
+
+    if was_approved:
+        log_activity(
+            actor_id=current_user["id"],
+            action="quotation.price_changed",
+            entity_type="quotation",
+            entity_id=quotation_id,
+            message=(
+                f"{current_user['name']} changed pricing on the already-approved "
+                f"quotation for {lead['company_name']} "
+                f"(grand total {old_grand_total} -> {totals['grand_total']})."
+            ),
+        )
 
     return {
         "success": True,
         "unit_price": body.unit_price,
         "gst_percent": body.gst_percent,
+        "discount_type": body.discount_type,
         "discount_percent": body.discount_percent,
-        "original_subtotal": original_subtotal,
-        "discount_amount": discount_amount,
-        "subtotal": subtotal,
-        "gst_amount": gst_amount,
-        "grand_total": grand_total,
+        "discount_amount": body.discount_amount,
+        "special_discount_percent": body.special_discount_percent,
+        "special_discount_amount": body.special_discount_amount,
+        "price_change_recorded": was_approved,
+        **totals,
     }
+
+
+# -------------------------------
+# Price Change History
+# -------------------------------
+@router.get("/{quotation_id}/price-history")
+def get_price_history(
+    quotation_id: int,
+    current_user=Depends(require_roles(*APPROVAL_ROLES)),
+):
+    conn = get_conn()
+    _get_quotation_or_404(conn, quotation_id)
+
+    rows = conn.execute(
+        """
+        SELECT
+            quotation_price_history.*,
+            users.name AS changed_by_name
+        FROM quotation_price_history
+        LEFT JOIN users ON users.id = quotation_price_history.changed_by
+        WHERE quotation_id = ?
+        ORDER BY changed_at DESC
+        """,
+        (quotation_id,),
+    ).fetchall()
+
+    return [dict(row) for row in rows]
 
 
 # -------------------------------

@@ -110,6 +110,8 @@ def get_session_messages(
         customer_phone=session["customer_phone"],
         assigned_to=session["assigned_to"],
         assigned_to_name=session["assigned_to_name"] if bypass_ownership else None,
+        customer_name=session["customer_name"] if bypass_ownership else None,
+        company_name=session["company_name"] if bypass_ownership else None,
         created_at=session["created_at"],
         updated_at=session["updated_at"],
         is_archived=bool(session["is_archived"]),
@@ -254,6 +256,8 @@ def _row_to_summary(row) -> SessionSummary:
         customer_phone=row["customer_phone"],
         assigned_to=row["assigned_to"],
         assigned_to_name=row["assigned_to_name"],
+        customer_name=row["customer_name"],
+        company_name=row["company_name"],
         unread=bool(row["unread"]),
         is_archived=bool(row["is_archived"]),
     )

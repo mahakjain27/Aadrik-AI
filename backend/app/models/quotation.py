@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 
@@ -31,7 +31,17 @@ class QuotationResponse(BaseModel):
 class QuotationPricingRequest(BaseModel):
     unit_price: float
     gst_percent: float = 18.0
+
+    # Normal discount: either a percentage or a flat Rs amount, never both -
+    # discount_type says which of the two fields below is active.
+    discount_type: Literal["percent", "amount"] = "percent"
     discount_percent: float = 0.0
+    discount_amount: float = 0.0
+
+    # Special discount: a percentage AND a flat Rs amount, both can apply
+    # on top of the normal discount.
+    special_discount_percent: float = 0.0
+    special_discount_amount: float = 0.0
 
 
 class QuotationRejectRequest(BaseModel):

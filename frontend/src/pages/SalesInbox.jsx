@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Spinner, Badge, Modal, Form, Button } from "react-bootstrap";
+import { Spinner, Badge } from "react-bootstrap";
 import {
   getInboxSessions,
   getArchivedSessions,
@@ -11,15 +11,12 @@ import {
   unarchiveSession,
   deleteSession,
   deleteClosedSessions,
-  assignSession,
-  getAssignees,
   getSessionAIAssist,
-  checkWhatsAppNumber,
-  sendWhatsAppTemplate,
   sendSalesAttachment,
 } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { timeAgo } from "../utils/timeAgo";
+import WhatsAppMessageModal from "../components/WhatsAppMessageModal";
 
 const ARCHIVED_STATUS = "__archived__";
 
@@ -172,203 +169,8 @@ function CustomerField({ label, value }) {
   );
 }
 
-const SALES_TEMPLATE_PREVIEW =
-  "Hi, this is Aadrik AI from Aadrik Distributors. We supply welding " +
-  "consumables and would be happy to assist with your requirements. " +
-  "Please let us know if you currently have any requirements we can help with.";
-
-function NewConversationModal({ show, onClose, onStarted }) {
-  const [phone, setPhone] = useState("");
-  const [checking, setChecking] = useState(false);
-  const [checkError, setCheckError] = useState("");
-  const [result, setResult] = useState(null); // { session_id, customer_phone, window_open, is_new }
-  const [message, setMessage] = useState("");
-  const [attachment, setAttachment] = useState(null);
-  const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState("");
-  const fileInputRef = useRef(null);
-
-  function reset() {
-    setPhone("");
-    setChecking(false);
-    setCheckError("");
-    setResult(null);
-    setMessage("");
-    setAttachment(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    setSending(false);
-    setSendError("");
-  }
-
-  function handleClose() {
-    reset();
-    onClose();
-  }
-
-  async function handleCheck() {
-    if (!phone.trim()) return;
-
-    setChecking(true);
-    setCheckError("");
-
-    try {
-      const data = await checkWhatsAppNumber(phone);
-      setResult(data);
-    } catch (err) {
-      setCheckError(err.response?.data?.message || "Could not check this number.");
-    } finally {
-      setChecking(false);
-    }
-  }
-
-  async function handleSendFreeform() {
-    if ((!message.trim() && !attachment) || !result?.session_id) return;
-
-    setSending(true);
-    setSendError("");
-
-    try {
-      if (attachment) {
-        await sendSalesAttachment(result.session_id, attachment, message.trim() || undefined);
-      } else {
-        await sendSalesReply(result.session_id, message);
-      }
-      onStarted(result.session_id);
-      reset();
-    } catch (err) {
-      setSendError(err.response?.data?.message || "Could not send message.");
-    } finally {
-      setSending(false);
-    }
-  }
-
-  async function handleSendTemplate() {
-    setSending(true);
-    setSendError("");
-
-    try {
-      const data = await sendWhatsAppTemplate(result.customer_phone);
-      onStarted(data.session_id);
-      reset();
-    } catch (err) {
-      setSendError(err.response?.data?.message || "Could not send WhatsApp template.");
-    } finally {
-      setSending(false);
-    }
-  }
-
-  return (
-    <Modal show={show} onHide={handleClose} centered>
-      <Modal.Header closeButton>
-        <Modal.Title>New WhatsApp Conversation</Modal.Title>
-      </Modal.Header>
-
-      <Modal.Body>
-        {!result ? (
-          <>
-            <Form.Label className="small mb-1">Customer WhatsApp Number</Form.Label>
-            <Form.Control
-              placeholder="+91 98765 43210"
-              value={phone}
-              disabled={checking}
-              onChange={(e) => setPhone(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleCheck();
-                }
-              }}
-              autoFocus
-            />
-            {checkError && (
-              <div className="small text-danger mt-2">{checkError}</div>
-            )}
-          </>
-        ) : result.window_open ? (
-          <>
-            <div className="small text-muted mb-2">
-              This customer's 24-hour conversation window is open - you can send a
-              normal message to <strong>{result.customer_phone}</strong>.
-            </div>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              placeholder={attachment ? "Optional caption..." : "Type a message..."}
-              value={message}
-              disabled={sending}
-              onChange={(e) => setMessage(e.target.value)}
-              autoFocus
-              className="mb-2"
-            />
-
-            <Form.Label className="small mb-1">
-              Attachment <span className="text-muted">(PDF, JPG, or PNG - e.g. an invoice)</span>
-            </Form.Label>
-            <Form.Control
-              ref={fileInputRef}
-              type="file"
-              size="sm"
-              accept="application/pdf,image/jpeg,image/png"
-              disabled={sending}
-              onChange={(e) => setAttachment(e.target.files?.[0] || null)}
-            />
-          </>
-        ) : (
-          <>
-            <div className="small text-muted mb-2">
-              {result.is_new
-                ? "This number hasn't messaged before."
-                : "This conversation's 24-hour window has closed."}{" "}
-              WhatsApp requires an approved template to start it -
-              free text isn't allowed yet for <strong>{result.customer_phone}</strong>.
-            </div>
-            <div
-              className="p-2 small"
-              style={{ background: "#f3eefb", border: "1px solid rgba(111,66,193,0.18)", borderRadius: "10px" }}
-            >
-              <div className="fw-semibold mb-1" style={{ color: "#6f42c1" }}>
-                Template preview
-              </div>
-              {SALES_TEMPLATE_PREVIEW}
-            </div>
-            <div className="small text-muted mt-2">
-              Once they reply, this becomes a normal conversation.
-            </div>
-          </>
-        )}
-
-        {sendError && <div className="small text-danger mt-2">{sendError}</div>}
-      </Modal.Body>
-
-      <Modal.Footer>
-        <Button variant="secondary" onClick={handleClose}>
-          Cancel
-        </Button>
-
-        {!result ? (
-          <Button onClick={handleCheck} disabled={!phone.trim() || checking}>
-            {checking ? "Checking..." : "Check Number"}
-          </Button>
-        ) : result.window_open ? (
-          <Button
-            onClick={handleSendFreeform}
-            disabled={(!message.trim() && !attachment) || sending}
-          >
-            {sending ? "Sending..." : attachment ? "Send Attachment" : "Send"}
-          </Button>
-        ) : (
-          <Button onClick={handleSendTemplate} disabled={sending}>
-            {sending ? "Sending..." : "Send Template"}
-          </Button>
-        )}
-      </Modal.Footer>
-    </Modal>
-  );
-}
-
 export default function SalesInbox({ pendingSessionId, onConsumePending }) {
   const { user } = useAuth();
-  const canAssign = user?.role === "admin" || user?.role === "manager";
 
   const [statusFilter, setStatusFilter] = useState("Waiting for Sales");
   const [searchInput, setSearchInput] = useState("");
@@ -394,9 +196,6 @@ export default function SalesInbox({ pendingSessionId, onConsumePending }) {
 
   const isAdmin = user?.role === "admin";
 
-  const [assignees, setAssignees] = useState([]);
-  const [assigning, setAssigning] = useState(false);
-
   const [liveConnected, setLiveConnected] = useState(false);
   const [showNewConversation, setShowNewConversation] = useState(false);
 
@@ -407,12 +206,6 @@ export default function SalesInbox({ pendingSessionId, onConsumePending }) {
 
   const refreshSessionsRef = useRef();
   const loadConversationRef = useRef();
-
-  useEffect(() => {
-    if (canAssign) {
-      getAssignees().then(setAssignees);
-    }
-  }, [canAssign]);
 
   function refreshSessions() {
     if (statusFilter === ARCHIVED_STATUS) {
@@ -581,22 +374,6 @@ export default function SalesInbox({ pendingSessionId, onConsumePending }) {
 
     setReply(aiAssist.suggested_reply);
     replyRef.current?.focus();
-  }
-
-  async function handleAssign(assignedTo) {
-    if (!selectedId) return;
-
-    setAssigning(true);
-
-    try {
-      await assignSession(selectedId, assignedTo);
-      await Promise.all([
-        loadConversation(selectedId),
-        refreshSessions(),
-      ]);
-    } finally {
-      setAssigning(false);
-    }
   }
 
   async function handleToggleStatus() {
@@ -827,24 +604,28 @@ export default function SalesInbox({ pendingSessionId, onConsumePending }) {
                         className="text-truncate"
                         style={{ fontWeight: session.unread ? 700 : 600 }}
                       >
-                        {session.title}
+                        {session.customer_name || session.customer_phone || session.title}
                       </span>
                     </div>
 
                     <StatusPill status={session.status} size="sm" />
                   </div>
 
-                  {session.customer_phone && (
-                    <div className="text-muted small mt-1">
-                      {session.customer_phone}
-                    </div>
-                  )}
+                  {(() => {
+                    const subtitle = session.customer_name
+                      ? [session.company_name, session.customer_phone]
+                          .filter(Boolean)
+                          .join(" · ")
+                      : session.customer_phone
+                      ? session.title
+                      : null;
 
-                  {session.assigned_to_name && (
-                    <div className="text-muted small">
-                      Assigned: {session.assigned_to_name}
-                    </div>
-                  )}
+                    return subtitle ? (
+                      <div className="text-muted small mt-1 text-truncate">
+                        {subtitle}
+                      </div>
+                    ) : null;
+                  })()}
                 </button>
               ))
             )}
@@ -1091,33 +872,15 @@ export default function SalesInbox({ pendingSessionId, onConsumePending }) {
             </div>
 
             <div className="p-3" style={{ overflowY: "auto", flexGrow: 1 }}>
+              {conversation.customer_name && (
+                <CustomerField label="Name" value={conversation.customer_name} />
+              )}
+
+              {conversation.company_name && (
+                <CustomerField label="Company" value={conversation.company_name} />
+              )}
+
               <CustomerField label="Phone" value={conversation.customer_phone || "—"} />
-
-              <CustomerField
-                label="Assigned"
-                value={
-                  canAssign ? (
-                    <select
-                      className="form-select form-select-sm"
-                      value={conversation.assigned_to ?? ""}
-                      disabled={assigning}
-                      onChange={(e) =>
-                        handleAssign(e.target.value ? Number(e.target.value) : null)
-                      }
-                    >
-                      <option value="">Unassigned</option>
-
-                      {assignees.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    conversation.assigned_to_name || "Unassigned"
-                  )
-                }
-              />
 
               <CustomerField
                 label="Status"
@@ -1151,7 +914,7 @@ export default function SalesInbox({ pendingSessionId, onConsumePending }) {
         )}
       </div>
 
-      <NewConversationModal
+      <WhatsAppMessageModal
         show={showNewConversation}
         onClose={() => setShowNewConversation(false)}
         onStarted={handleConversationStarted}

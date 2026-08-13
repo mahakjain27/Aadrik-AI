@@ -53,12 +53,6 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-const PRIORITY_META = {
-  High: { emoji: "🔥", color: "#d03b3b" },
-  Medium: { emoji: "⚠", color: "#eda100" },
-  Low: { emoji: "⬇", color: "#898781" },
-};
-
 const SOURCE_META = {
   website: { label: "Website", emoji: "🌐", color: "#1baf7a" },
   whatsapp: { label: "WhatsApp", emoji: "💬", color: "#25d366" },
@@ -84,34 +78,6 @@ function SourceBadge({ source }) {
       }}
     >
       {meta.emoji} {meta.label}
-    </span>
-  );
-}
-
-function PriorityBadge({ priority, score, reason, quantityUnit }) {
-  if (!priority) {
-    return <span style={{ color: "#898781", fontSize: "12px" }}>—</span>;
-  }
-
-  const meta = PRIORITY_META[priority];
-
-  return (
-    <span
-      title={`Score ${score}/100 — ${reason} · Quantity unit: ${quantityUnit}`}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "6px",
-        padding: "4px 10px",
-        borderRadius: "999px",
-        fontSize: "12px",
-        fontWeight: 600,
-        whiteSpace: "nowrap",
-        background: hexToRgba(meta.color, 0.12),
-        color: meta.color,
-      }}
-    >
-      {meta.emoji} {priority}
     </span>
   );
 }
@@ -497,22 +463,22 @@ export default function CRMDashboard({ pendingQuotationId, onConsumePending }) {
       <Table
             hover
             striped
-            responsive
+            size="sm"
             className="mb-0"
+            style={{ tableLayout: "fixed", width: "100%", fontSize: "13px" }}
           >
 
             <thead>
               <tr>
-                <th>Quote No</th>
-                <th>Company</th>
-                <th>Source</th>
-                <th>AI Priority</th>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>City</th>
-                <th>Status</th>
-                <th>Approval</th>
-                <th>Action</th>
+                <th style={{ width: "9%" }}>Quote No</th>
+                <th style={{ width: "17%" }}>Company</th>
+                <th style={{ width: "9%" }}>Source</th>
+                <th style={{ width: "20%" }}>Product</th>
+                <th style={{ width: "8%" }}>Size</th>
+                <th style={{ width: "9%" }}>Quantity</th>
+                <th style={{ width: "14%" }}>Status</th>
+                <th style={{ width: "8%" }}>Approval</th>
+                <th style={{ width: "6%" }}>Action</th>
               </tr>
             </thead>
 
@@ -529,28 +495,19 @@ export default function CRMDashboard({ pendingQuotationId, onConsumePending }) {
                     ) : null}
                   </td>
 
-                  <td style ={{ minWidth: "200px"}}>{lead.company_name}</td>
+                  <td style={{ wordBreak: "break-word" }}>{lead.company_name}</td>
 
                   <td>
                     <SourceBadge source={lead.source} />
                   </td>
 
-                  <td>
-                    <PriorityBadge
-                      priority={lead.ai_priority}
-                      score={lead.ai_score}
-                      reason={lead.ai_reason}
-                      quantityUnit={lead.ai_quantity_unit}
-                    />
-                  </td>
+                  <td style={{ wordBreak: "break-word" }}>{lead.product_name}</td>
 
-                  <td style={{ minWidth: "260px"}}>{lead.product_name}</td>
+                  <td>{lead.size || "-"}</td>
 
                   <td>{lead.quantity}</td>
 
-                  <td>{lead.delivery_city}</td>
-
-                  <td style={{ minWidth: "170px" }}>
+                  <td>
   <select
     className="form-select form-select-sm"
     value={lead.status}

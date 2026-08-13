@@ -59,6 +59,38 @@ ON quotations(status);
 CREATE INDEX IF NOT EXISTS idx_quotation_created
 ON quotations(created_at DESC);
 
+CREATE TABLE IF NOT EXISTS quotation_price_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    quotation_id INTEGER NOT NULL REFERENCES quotations(id),
+
+    old_unit_price REAL,
+    new_unit_price REAL,
+
+    old_discount_type TEXT,
+    new_discount_type TEXT,
+    old_discount_percent REAL,
+    new_discount_percent REAL,
+    old_discount_amount REAL,
+    new_discount_amount REAL,
+
+    old_special_discount_percent REAL,
+    new_special_discount_percent REAL,
+    old_special_discount_amount REAL,
+    new_special_discount_amount REAL,
+
+    old_gst_percent REAL,
+    new_gst_percent REAL,
+
+    old_grand_total REAL,
+    new_grand_total REAL,
+
+    changed_by INTEGER REFERENCES users(id),
+    changed_at TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_quotation_price_history_quotation_id
+ON quotation_price_history(quotation_id);
+
 CREATE INDEX IF NOT EXISTS idx_sessions_user_updated
     ON sessions (user_id, updated_at DESC);
 
@@ -365,6 +397,18 @@ def _migrate_quotations_columns() -> None:
 
         "discount_percent":
             "ALTER TABLE quotations ADD COLUMN discount_percent REAL NOT NULL DEFAULT 0",
+
+        "discount_type":
+            "ALTER TABLE quotations ADD COLUMN discount_type TEXT NOT NULL DEFAULT 'percent'",
+
+        "discount_amount":
+            "ALTER TABLE quotations ADD COLUMN discount_amount REAL NOT NULL DEFAULT 0",
+
+        "special_discount_percent":
+            "ALTER TABLE quotations ADD COLUMN special_discount_percent REAL NOT NULL DEFAULT 0",
+
+        "special_discount_amount":
+            "ALTER TABLE quotations ADD COLUMN special_discount_amount REAL NOT NULL DEFAULT 0",
 
         "subtotal":
             "ALTER TABLE quotations ADD COLUMN subtotal REAL",

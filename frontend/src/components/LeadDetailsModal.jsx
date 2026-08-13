@@ -3,11 +3,13 @@ import { Modal, Table, Badge, Button, Form, Alert } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
 import {
   setQuotationPricing,
+  getQuotationPriceHistory,
   submitQuotationForApproval,
   approveQuotation,
   rejectQuotation,
   sendQuotation,
 } from "../services/api";
+import WhatsAppMessageModal from "./WhatsAppMessageModal";
 
 const SOURCE_LABELS = {
   manual: "Manual",
@@ -46,24 +48,53 @@ export default function LeadDetailsModal({
   const [local, setLocal] = useState(lead);
   const [unitPrice, setUnitPrice] = useState("");
   const [gstPercent, setGstPercent] = useState("18");
+  const [discountType, setDiscountType] = useState("percent");
   const [discountPercent, setDiscountPercent] = useState("0");
+  const [discountAmount, setDiscountAmount] = useState("0");
+  const [specialDiscountPercent, setSpecialDiscountPercent] = useState("0");
+  const [specialDiscountAmount, setSpecialDiscountAmount] = useState("0");
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
+  const [showMessageCustomer, setShowMessageCustomer] = useState(false);
+  const [priceHistory, setPriceHistory] = useState([]);
+  const [pendingApprovedConfirm, setPendingApprovedConfirm] = useState(null);
 
   useEffect(() => {
     setLocal(lead);
     setUnitPrice(lead?.unit_price != null ? String(lead.unit_price) : "");
     setGstPercent(lead?.gst_percent != null ? String(lead.gst_percent) : "18");
+    setDiscountType(lead?.discount_type || "percent");
     setDiscountPercent(
       lead?.discount_percent != null ? String(lead.discount_percent) : "0"
+    );
+    setDiscountAmount(
+      lead?.discount_amount != null ? String(lead.discount_amount) : "0"
+    );
+    setSpecialDiscountPercent(
+      lead?.special_discount_percent != null
+        ? String(lead.special_discount_percent)
+        : "0"
+    );
+    setSpecialDiscountAmount(
+      lead?.special_discount_amount != null
+        ? String(lead.special_discount_amount)
+        : "0"
     );
     setRejectReason("");
     setShowRejectForm(false);
     setError(null);
     setActionMessage(null);
+    setPendingApprovedConfirm(null);
+    setPriceHistory([]);
+
+    if (lead?.id && show) {
+      getQuotationPriceHistory(lead.id)
+        .then(setPriceHistory)
+        .catch(() => setPriceHistory([]));
+    }
   }, [lead, show]);
 
   if (!local) return null;
@@ -86,23 +117,49 @@ export default function LeadDetailsModal({
     }
   }
 
-  async function handleSavePricing() {
+  function currentPricingPayload() {
+    return {
+      unitPrice: Number(unitPrice),
+      gstPercent: Number(gstPercent),
+      discountType,
+      discountPercent: Number(discountPercent) || 0,
+      discountAmount: Number(discountAmount) || 0,
+      specialDiscountPercent: Number(specialDiscountPercent) || 0,
+      specialDiscountAmount: Number(specialDiscountAmount) || 0,
+    };
+  }
+
+  // Editing an already-approved quotation's price is allowed, but it's a
+  // significant enough action to confirm first - runPricingAction routes
+  // through that confirmation when needed, and straight through otherwise.
+  function runPricingAction(action) {
+    if (approvalStatus === "Approved") {
+      setPendingApprovedConfirm(() => action);
+      return;
+    }
+
+    action();
+  }
+
+  async function savePricing() {
     const result = await runAction(() =>
-      setQuotationPricing(
-        local.id,
-        Number(unitPrice),
-        Number(gstPercent),
-        Number(discountPercent)
-      )
+      setQuotationPricing(local.id, currentPricingPayload())
     );
 
     if (result) {
       setLocal((prev) => ({ ...prev, ...result }));
+
+      if (result.price_change_recorded) {
+        getQuotationPriceHistory(local.id)
+          .then(setPriceHistory)
+          .catch(() => {});
+      }
+
       onUpdated?.();
     }
   }
 
-  async function handleSubmitForApproval() {
+  async function submitForApproval() {
     if (!unitPrice) {
       setError("Enter a unit price first.");
       return;
@@ -112,12 +169,7 @@ export default function LeadDetailsModal({
     // sales rep doesn't have to remember to click "Save Pricing" separately
     // before this button will do anything.
     const pricingResult = await runAction(() =>
-      setQuotationPricing(
-        local.id,
-        Number(unitPrice),
-        Number(gstPercent),
-        Number(discountPercent)
-      )
+      setQuotationPricing(local.id, currentPricingPayload())
     );
 
     if (!pricingResult) return;
@@ -133,6 +185,14 @@ export default function LeadDetailsModal({
       }));
       onUpdated?.();
     }
+  }
+
+  function handleSavePricing() {
+    runPricingAction(savePricing);
+  }
+
+  function handleSubmitForApproval() {
+    runPricingAction(submitForApproval);
   }
 
   async function handleApprove() {
@@ -189,14 +249,38 @@ export default function LeadDetailsModal({
     return match ? Number(match[0]) : null;
   })();
 
+  const localDiscountType = local.discount_type || "percent";
+
   const originalAmount =
     local.unit_price != null && quantityNumber != null
       ? Math.round(local.unit_price * quantityNumber * 100) / 100
       : null;
 
-  const discountAmount =
-    originalAmount != null && local.discount_percent
-      ? Math.round(((originalAmount * local.discount_percent) / 100) * 100) / 100
+  const normalDiscountAmount =
+    originalAmount != null
+      ? localDiscountType === "amount"
+        ? Math.min(Math.max(local.discount_amount || 0, 0), originalAmount)
+        : Math.round(((originalAmount * (local.discount_percent || 0)) / 100) * 100) / 100
+      : null;
+
+  const subtotalAfterNormalDiscount =
+    originalAmount != null && normalDiscountAmount != null
+      ? Math.round((originalAmount - normalDiscountAmount) * 100) / 100
+      : null;
+
+  const specialDiscountPercentAmount =
+    subtotalAfterNormalDiscount != null
+      ? Math.round(
+          ((subtotalAfterNormalDiscount * (local.special_discount_percent || 0)) / 100) * 100
+        ) / 100
+      : null;
+
+  const specialDiscountFlatAmount =
+    subtotalAfterNormalDiscount != null && specialDiscountPercentAmount != null
+      ? Math.min(
+          Math.max(local.special_discount_amount || 0, 0),
+          Math.max(subtotalAfterNormalDiscount - specialDiscountPercentAmount, 0)
+        )
       : null;
 
   const gstAmount =
@@ -210,9 +294,11 @@ export default function LeadDetailsModal({
       : null;
 
   const approvalStatus = local.approval_status || "Draft";
-  const canEditPricing = approvalStatus === "Draft" || approvalStatus === "Rejected";
+  const canSubmitForApproval =
+    approvalStatus === "Draft" || approvalStatus === "Rejected";
 
   return (
+    <>
     <Modal
       show={show}
       onHide={onClose}
@@ -223,6 +309,17 @@ export default function LeadDetailsModal({
         <Modal.Title>
           Quotation Details
         </Modal.Title>
+
+        {local.phone && (
+          <Button
+            variant="outline-primary"
+            size="sm"
+            className="ms-auto me-3"
+            onClick={() => setShowMessageCustomer(true)}
+          >
+            💬 Message Customer
+          </Button>
+        )}
       </Modal.Header>
 
       <Modal.Body>
@@ -443,8 +540,37 @@ export default function LeadDetailsModal({
           )}
         </div>
 
-        {canEditPricing && (
-          <Form className="row g-2 align-items-end mb-3">
+        {pendingApprovedConfirm && (
+          <Alert variant="warning" className="py-2">
+            <div className="mb-2">
+              This quotation has already been approved. Changing the price or
+              discount will modify the approved quotation. Continue?
+            </div>
+            <div className="d-flex gap-2">
+              <Button
+                size="sm"
+                variant="warning"
+                onClick={() => {
+                  const action = pendingApprovedConfirm;
+                  setPendingApprovedConfirm(null);
+                  action();
+                }}
+              >
+                Continue
+              </Button>
+              <Button
+                size="sm"
+                variant="outline-secondary"
+                onClick={() => setPendingApprovedConfirm(null)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </Alert>
+        )}
+
+        <Form className="mb-3">
+          <div className="row g-2 align-items-end mb-2">
             <Form.Group className="col-sm-3">
               <Form.Label className="small mb-1">Unit Price (Rs.)</Form.Label>
               <Form.Control
@@ -453,18 +579,6 @@ export default function LeadDetailsModal({
                 step="0.01"
                 value={unitPrice}
                 onChange={(e) => setUnitPrice(e.target.value)}
-              />
-            </Form.Group>
-
-            <Form.Group className="col-sm-3">
-              <Form.Label className="small mb-1">Discount %</Form.Label>
-              <Form.Control
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                value={discountPercent}
-                onChange={(e) => setDiscountPercent(e.target.value)}
               />
             </Form.Group>
 
@@ -478,17 +592,94 @@ export default function LeadDetailsModal({
                 onChange={(e) => setGstPercent(e.target.value)}
               />
             </Form.Group>
+          </div>
 
-            <div className="col-sm-4 d-flex gap-2">
-              <Button
-                size="sm"
-                variant="outline-primary"
-                disabled={busy || !unitPrice}
-                onClick={handleSavePricing}
-              >
-                Save Pricing
-              </Button>
+          <div className="mb-2">
+            <Form.Label className="small mb-1 fw-semibold d-block">
+              Normal Discount
+            </Form.Label>
+            <div className="d-flex align-items-center gap-3 flex-wrap">
+              <Form.Check
+                inline
+                type="radio"
+                id="discount-type-percent"
+                name="discountType"
+                label="Percentage"
+                checked={discountType === "percent"}
+                onChange={() => setDiscountType("percent")}
+              />
+              <Form.Check
+                inline
+                type="radio"
+                id="discount-type-amount"
+                name="discountType"
+                label="Amount (Rs.)"
+                checked={discountType === "amount"}
+                onChange={() => setDiscountType("amount")}
+              />
+              {discountType === "percent" ? (
+                <Form.Control
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  style={{ maxWidth: 140 }}
+                  value={discountPercent}
+                  onChange={(e) => setDiscountPercent(e.target.value)}
+                />
+              ) : (
+                <Form.Control
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  style={{ maxWidth: 160 }}
+                  value={discountAmount}
+                  onChange={(e) => setDiscountAmount(e.target.value)}
+                />
+              )}
+            </div>
+          </div>
 
+          <div className="mb-3">
+            <Form.Label className="small mb-1 fw-semibold d-block">
+              Special Discount
+            </Form.Label>
+            <div className="row g-2">
+              <Form.Group className="col-sm-3">
+                <Form.Label className="small mb-1 text-muted">Percent</Form.Label>
+                <Form.Control
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={specialDiscountPercent}
+                  onChange={(e) => setSpecialDiscountPercent(e.target.value)}
+                />
+              </Form.Group>
+              <Form.Group className="col-sm-3">
+                <Form.Label className="small mb-1 text-muted">Amount (Rs.)</Form.Label>
+                <Form.Control
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={specialDiscountAmount}
+                  onChange={(e) => setSpecialDiscountAmount(e.target.value)}
+                />
+              </Form.Group>
+            </div>
+          </div>
+
+          <div className="d-flex gap-2">
+            <Button
+              size="sm"
+              variant="outline-primary"
+              disabled={busy || !unitPrice}
+              onClick={handleSavePricing}
+            >
+              Save Pricing
+            </Button>
+
+            {canSubmitForApproval && (
               <Button
                 size="sm"
                 variant="primary"
@@ -497,27 +688,51 @@ export default function LeadDetailsModal({
               >
                 Submit for Approval
               </Button>
-            </div>
-          </Form>
-        )}
+            )}
+          </div>
+        </Form>
 
         {local.subtotal != null && (
-          <Table size="sm" borderless className="mb-3" style={{ maxWidth: 320 }}>
+          <Table size="sm" borderless className="mb-3" style={{ maxWidth: 340 }}>
             <tbody>
-              {originalAmount != null && local.discount_percent ? (
+              {originalAmount != null && normalDiscountAmount > 0 ? (
                 <>
                   <tr>
                     <td>Original Price</td>
                     <td className="text-end">Rs. {originalAmount.toFixed(2)}</td>
                   </tr>
                   <tr>
-                    <td>Discount ({local.discount_percent}%)</td>
+                    <td>
+                      Normal Discount
+                      {localDiscountType === "percent"
+                        ? ` (${local.discount_percent}%)`
+                        : " (Flat)"}
+                    </td>
                     <td className="text-end text-danger">
-                      - Rs. {discountAmount.toFixed(2)}
+                      - Rs. {normalDiscountAmount.toFixed(2)}
                     </td>
                   </tr>
                 </>
               ) : null}
+
+              {specialDiscountPercentAmount > 0 && (
+                <tr>
+                  <td>Special Discount ({local.special_discount_percent}%)</td>
+                  <td className="text-end text-danger">
+                    - Rs. {specialDiscountPercentAmount.toFixed(2)}
+                  </td>
+                </tr>
+              )}
+
+              {specialDiscountFlatAmount > 0 && (
+                <tr>
+                  <td>Special Discount (Flat)</td>
+                  <td className="text-end text-danger">
+                    - Rs. {specialDiscountFlatAmount.toFixed(2)}
+                  </td>
+                </tr>
+              )}
+
               <tr>
                 <td>Subtotal</td>
                 <td className="text-end">Rs. {local.subtotal.toFixed(2)}</td>
@@ -536,6 +751,44 @@ export default function LeadDetailsModal({
               </tr>
             </tbody>
           </Table>
+        )}
+
+        {priceHistory.length > 0 && (
+          <div className="mb-3">
+            <h6 className="mb-2">Price History</h6>
+            {priceHistory.map((entry) => (
+              <div
+                key={entry.id}
+                className="p-2 mb-2 small"
+                style={{
+                  background: "#fff8e6",
+                  border: "1px solid rgba(237,161,0,0.3)",
+                  borderRadius: "8px",
+                }}
+              >
+                <div className="fw-semibold mb-1">Price changed after approval</div>
+                <div>
+                  Previous:{" "}
+                  <strong>
+                    {entry.old_grand_total != null
+                      ? `Rs. ${entry.old_grand_total.toFixed(2)}`
+                      : "-"}
+                  </strong>
+                  {" → "}
+                  Updated:{" "}
+                  <strong>
+                    {entry.new_grand_total != null
+                      ? `Rs. ${entry.new_grand_total.toFixed(2)}`
+                      : "-"}
+                  </strong>
+                </div>
+                <div className="text-muted">
+                  Changed by {entry.changed_by_name || "Unknown"} on{" "}
+                  {new Date(entry.changed_at).toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
 
         {approvalStatus === "Pending Approval" && canApprove && !showRejectForm && (
@@ -604,5 +857,16 @@ export default function LeadDetailsModal({
       </Modal.Footer>
 
     </Modal>
+
+    <WhatsAppMessageModal
+      show={showMessageCustomer}
+      onClose={() => setShowMessageCustomer(false)}
+      onStarted={() => {
+        setShowMessageCustomer(false);
+        setActionMessage("Message sent.");
+      }}
+      initialPhone={local.phone}
+    />
+    </>
   );
 }

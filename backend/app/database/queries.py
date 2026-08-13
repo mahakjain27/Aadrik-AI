@@ -110,9 +110,12 @@ def list_sessions_by_status(status: str, viewer_id: int) -> list[sqlite3.Row]:
             sessions.assigned_to,
             sessions.is_archived,
             assignee.name AS assigned_to_name,
+            customers.contact_person AS customer_name,
+            customers.company_name AS company_name,
             sessions.updated_at > COALESCE(session_reads.last_read_at, '') AS unread
         FROM sessions
         LEFT JOIN users AS assignee ON assignee.id = sessions.assigned_to
+        LEFT JOIN customers ON customers.phone = sessions.customer_phone
         LEFT JOIN session_reads
             ON session_reads.session_id = sessions.id
             AND session_reads.user_id = ?
@@ -142,9 +145,12 @@ def list_archived_sessions(viewer_id: int) -> list[sqlite3.Row]:
             sessions.assigned_to,
             sessions.is_archived,
             assignee.name AS assigned_to_name,
+            customers.contact_person AS customer_name,
+            customers.company_name AS company_name,
             sessions.updated_at > COALESCE(session_reads.last_read_at, '') AS unread
         FROM sessions
         LEFT JOIN users AS assignee ON assignee.id = sessions.assigned_to
+        LEFT JOIN customers ON customers.phone = sessions.customer_phone
         LEFT JOIN session_reads
             ON session_reads.session_id = sessions.id
             AND session_reads.user_id = ?
@@ -170,9 +176,12 @@ def list_assigned_unread_sessions(user_id: int) -> list[sqlite3.Row]:
             sessions.assigned_to,
             sessions.is_archived,
             assignee.name AS assigned_to_name,
+            customers.contact_person AS customer_name,
+            customers.company_name AS company_name,
             sessions.updated_at > COALESCE(session_reads.last_read_at, '') AS unread
         FROM sessions
         LEFT JOIN users AS assignee ON assignee.id = sessions.assigned_to
+        LEFT JOIN customers ON customers.phone = sessions.customer_phone
         LEFT JOIN session_reads
             ON session_reads.session_id = sessions.id
             AND session_reads.user_id = ?
@@ -202,17 +211,25 @@ def search_sessions(query: str, viewer_id: int) -> list[sqlite3.Row]:
             sessions.assigned_to,
             sessions.is_archived,
             assignee.name AS assigned_to_name,
+            customers.contact_person AS customer_name,
+            customers.company_name AS company_name,
             sessions.updated_at > COALESCE(session_reads.last_read_at, '') AS unread
         FROM sessions
         LEFT JOIN users AS assignee ON assignee.id = sessions.assigned_to
+        LEFT JOIN customers ON customers.phone = sessions.customer_phone
         LEFT JOIN session_reads
             ON session_reads.session_id = sessions.id
             AND session_reads.user_id = ?
-        WHERE (sessions.title LIKE ? OR sessions.customer_phone LIKE ?)
+        WHERE (
+            sessions.title LIKE ?
+            OR sessions.customer_phone LIKE ?
+            OR customers.contact_person LIKE ?
+            OR customers.company_name LIKE ?
+        )
           AND sessions.is_archived = 0
         ORDER BY sessions.updated_at DESC
         """,
-        (viewer_id, like, like),
+        (viewer_id, like, like, like, like),
     ).fetchall()
 
 
@@ -653,9 +670,12 @@ def get_session_by_id(session_id: str):
         """
         SELECT
             sessions.*,
-            assignee.name AS assigned_to_name
+            assignee.name AS assigned_to_name,
+            customers.contact_person AS customer_name,
+            customers.company_name AS company_name
         FROM sessions
         LEFT JOIN users AS assignee ON assignee.id = sessions.assigned_to
+        LEFT JOIN customers ON customers.phone = sessions.customer_phone
         WHERE sessions.id = ?
         """,
         (session_id,),

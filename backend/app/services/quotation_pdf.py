@@ -19,6 +19,7 @@ from reportlab.platypus import (
 
 from app.core.company import COMPANY
 from app.services.lead_scoring import _parse_quantity
+from app.services.quotation_pricing import compute_quotation_totals
 
 NAVY = colors.HexColor("#1F3B64")
 BORDER_GREY = colors.HexColor("#c9ccd1")
@@ -348,36 +349,73 @@ def generate_quotation_pdf(lead):
 
     # ---------- Totals ----------
     gst_rate = lead["gst_percent"] if lead["gst_percent"] is not None else COMPANY["gst_rate_percent"]
-    subtotal = lead["subtotal"]
-    gst_amount = round(subtotal * gst_rate / 100, 2) if subtotal is not None else None
-    grand_total = round(subtotal + gst_amount, 2) if subtotal is not None else None
-
-    discount_percent = lead["discount_percent"] or 0
     quantity_number = _parse_quantity(lead["quantity"])
-    original_amount = (
-        round(lead["unit_price"] * quantity_number, 2)
+
+    totals_values = (
+        compute_quotation_totals(
+            unit_price=lead["unit_price"],
+            quantity=quantity_number,
+            gst_percent=gst_rate,
+            discount_type=lead["discount_type"] or "percent",
+            discount_percent=lead["discount_percent"] or 0,
+            discount_amount=lead["discount_amount"] or 0,
+            special_discount_percent=lead["special_discount_percent"] or 0,
+            special_discount_amount=lead["special_discount_amount"] or 0,
+        )
         if lead["unit_price"] is not None and quantity_number
         else None
     )
-    discount_amount = (
-        round(original_amount * discount_percent / 100, 2)
-        if original_amount is not None and discount_percent
-        else None
-    )
+
+    subtotal = totals_values["subtotal"] if totals_values else lead["subtotal"]
+    gst_amount = round(subtotal * gst_rate / 100, 2) if subtotal is not None else None
+    grand_total = round(subtotal + gst_amount, 2) if subtotal is not None else None
 
     totals_rows = []
 
-    if original_amount is not None and discount_percent:
+    if totals_values and totals_values["normal_discount_amount"] > 0:
+        discount_label = (
+            f"Normal Discount ({lead['discount_percent']}%)"
+            if (lead["discount_type"] or "percent") == "percent"
+            else "Normal Discount (Flat)"
+        )
         totals_rows.append(
             [
                 Paragraph("Original Price", totals_label_style),
-                Paragraph(f"Rs. {original_amount:.2f}", totals_value_style),
+                Paragraph(f"Rs. {totals_values['original_subtotal']:.2f}", totals_value_style),
             ]
         )
         totals_rows.append(
             [
-                Paragraph(f"Discount ({discount_percent}%)", totals_label_style),
-                Paragraph(f"- Rs. {discount_amount:.2f}", totals_value_style),
+                Paragraph(discount_label, totals_label_style),
+                Paragraph(
+                    f"- Rs. {totals_values['normal_discount_amount']:.2f}",
+                    totals_value_style,
+                ),
+            ]
+        )
+
+    if totals_values and totals_values["special_discount_percent_amount"] > 0:
+        totals_rows.append(
+            [
+                Paragraph(
+                    f"Special Discount ({lead['special_discount_percent']}%)",
+                    totals_label_style,
+                ),
+                Paragraph(
+                    f"- Rs. {totals_values['special_discount_percent_amount']:.2f}",
+                    totals_value_style,
+                ),
+            ]
+        )
+
+    if totals_values and totals_values["special_discount_flat_amount"] > 0:
+        totals_rows.append(
+            [
+                Paragraph("Special Discount (Flat)", totals_label_style),
+                Paragraph(
+                    f"- Rs. {totals_values['special_discount_flat_amount']:.2f}",
+                    totals_value_style,
+                ),
             ]
         )
 

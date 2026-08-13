@@ -11,6 +11,8 @@ class SessionSummary(BaseModel):
     customer_phone: str | None = None
     assigned_to: int | None = None
     assigned_to_name: str | None = None
+    customer_name: str | None = None
+    company_name: str | None = None
     unread: bool = False
     is_archived: bool = False
 
@@ -30,6 +32,8 @@ class SessionMessagesResponse(BaseModel):
     customer_phone: str | None = None
     assigned_to: int | None = None
     assigned_to_name: str | None = None
+    customer_name: str | None = None
+    company_name: str | None = None
     created_at: str | None = None
     updated_at: str | None = None
     is_archived: bool = False
