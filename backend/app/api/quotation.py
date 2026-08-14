@@ -352,6 +352,51 @@ def get_price_history(
 
 
 # -------------------------------
+# Confirm Order (no quotation needed)
+# -------------------------------
+@router.post("/{quotation_id}/confirm-order")
+def confirm_order(
+    quotation_id: int,
+    current_user=Depends(require_roles(*APPROVAL_ROLES)),
+):
+    """For an existing customer who just wants to place an order with no
+    quotation/approval step - called after the order-confirmation WhatsApp
+    message has actually been sent (see WhatsAppMessageModal's
+    orderConfirmation mode). Marks the lead Won without ever touching the
+    Draft -> Pending Approval -> Approved pricing workflow."""
+
+    conn = get_conn()
+    lead = _get_quotation_or_404(conn, quotation_id)
+
+    with write_lock:
+        conn.execute(
+            """
+            UPDATE quotations
+            SET status = 'Won',
+                approval_status = 'Not Required',
+                closed_by = ?,
+                closed_at = ?
+            WHERE id = ?
+            """,
+            (current_user["id"], _now(), quotation_id),
+        )
+        conn.commit()
+
+    log_activity(
+        actor_id=current_user["id"],
+        action="quotation.order_confirmed",
+        entity_type="quotation",
+        entity_id=quotation_id,
+        message=(
+            f"{current_user['name']} confirmed the order for {lead['company_name']} "
+            "without a quotation - marked Won."
+        ),
+    )
+
+    return {"success": True, "status": "Won", "approval_status": "Not Required"}
+
+
+# -------------------------------
 # Submit for Approval
 # -------------------------------
 @router.post("/{quotation_id}/submit-for-approval")

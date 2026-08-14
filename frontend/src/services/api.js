@@ -161,6 +161,11 @@ export async function getQuotationPriceHistory(id) {
   return response.data;
 }
 
+export async function confirmOrder(id) {
+  const response = await api.post(`/quotation/${id}/confirm-order`);
+  return response.data;
+}
+
 export async function submitQuotationForApproval(id) {
   const response = await api.post(`/quotation/${id}/submit-for-approval`);
   return response.data;

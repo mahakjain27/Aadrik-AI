@@ -80,7 +80,7 @@ def update_lead_status(
     conn = get_conn()
 
     lead = conn.execute(
-        "SELECT company_name, status FROM quotations WHERE id = ?",
+        "SELECT company_name, status, approval_status FROM quotations WHERE id = ?",
         (lead_id,),
     ).fetchone()
 
@@ -97,14 +97,25 @@ def update_lead_status(
         closed_by = None
         closed_at = None
 
+    # A lead can only be Won on the back of either an approved quotation or
+    # a confirmed no-quotation-needed order - "Won" + "Pending Approval" (or
+    # "Draft"/"Rejected") is a contradiction, so reaching Won any other way
+    # (e.g. the manual status dropdown) implicitly means no quotation was
+    # ever required.
+    approval_update = ""
+    params: list = [status, closed_by, closed_at]
+
+    if status == "Won" and lead["approval_status"] not in ("Approved", "Not Required"):
+        approval_update = ", approval_status = 'Not Required'"
+
     with write_lock:
         conn.execute(
-            """
+            f"""
             UPDATE quotations
-            SET status = ?, closed_by = ?, closed_at = ?
+            SET status = ?, closed_by = ?, closed_at = ?{approval_update}
             WHERE id = ?
             """,
-            (status, closed_by, closed_at, lead_id),
+            (*params, lead_id),
         )
 
         conn.commit()

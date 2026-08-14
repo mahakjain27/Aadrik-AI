@@ -8,6 +8,7 @@ import {
   approveQuotation,
   rejectQuotation,
   sendQuotation,
+  confirmOrder,
 } from "../services/api";
 import WhatsAppMessageModal from "./WhatsAppMessageModal";
 
@@ -22,6 +23,7 @@ const APPROVAL_BADGE = {
   "Pending Approval": "warning",
   Approved: "success",
   Rejected: "danger",
+  "Not Required": "light",
 };
 
 const CHANNEL_LABEL = {
@@ -59,6 +61,7 @@ export default function LeadDetailsModal({
   const [error, setError] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
   const [showMessageCustomer, setShowMessageCustomer] = useState(false);
+  const [showConfirmOrder, setShowConfirmOrder] = useState(false);
   const [priceHistory, setPriceHistory] = useState([]);
   const [pendingApprovedConfirm, setPendingApprovedConfirm] = useState(null);
 
@@ -244,6 +247,20 @@ export default function LeadDetailsModal({
     }
   }
 
+  async function handleOrderConfirmed() {
+    const result = await runAction(() => confirmOrder(local.id));
+
+    if (result) {
+      setLocal((prev) => ({
+        ...prev,
+        status: result.status,
+        approval_status: result.approval_status,
+      }));
+      setActionMessage("Order confirmed - lead marked Won.");
+      onUpdated?.();
+    }
+  }
+
   const quantityNumber = (() => {
     const match = String(local.quantity || "").match(/[\d.]+/);
     return match ? Number(match[0]) : null;
@@ -312,14 +329,25 @@ export default function LeadDetailsModal({
         </Modal.Title>
 
         {local.phone && (
-          <Button
-            variant="outline-primary"
-            size="sm"
-            className="ms-auto me-3"
-            onClick={() => setShowMessageCustomer(true)}
-          >
-            💬 Message Customer
-          </Button>
+          <div className="ms-auto me-3 d-flex gap-2">
+            <Button
+              variant="outline-primary"
+              size="sm"
+              onClick={() => setShowMessageCustomer(true)}
+            >
+              💬 Message Customer
+            </Button>
+
+            {local.status !== "Won" && local.status !== "Lost" && (
+              <Button
+                variant="outline-success"
+                size="sm"
+                onClick={() => setShowConfirmOrder(true)}
+              >
+                ✅ Confirm Order
+              </Button>
+            )}
+          </div>
         )}
       </Modal.Header>
 
@@ -486,7 +514,11 @@ export default function LeadDetailsModal({
         )}
 
         <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
-          <Badge bg={APPROVAL_BADGE[approvalStatus] || "secondary"} pill>
+          <Badge
+            bg={APPROVAL_BADGE[approvalStatus] || "secondary"}
+            text={approvalStatus === "Not Required" ? "dark" : undefined}
+            pill
+          >
             {approvalStatus}
           </Badge>
 
@@ -867,6 +899,15 @@ export default function LeadDetailsModal({
         setActionMessage("Message sent.");
       }}
       initialPhone={local.phone}
+    />
+
+    <WhatsAppMessageModal
+      show={showConfirmOrder}
+      onClose={() => setShowConfirmOrder(false)}
+      initialPhone={local.phone}
+      orderConfirmation
+      onOrderConfirmed={handleOrderConfirmed}
+      onStarted={() => setShowConfirmOrder(false)}
     />
     </>
   );

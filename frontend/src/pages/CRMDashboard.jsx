@@ -38,6 +38,7 @@ const APPROVAL_BADGE = {
   "Pending Approval": "warning",
   Approved: "success",
   Rejected: "danger",
+  "Not Required": "light",
 };
 
 function getQuoteNumber(lead) {
@@ -538,7 +539,11 @@ export default function CRMDashboard({ pendingQuotationId, onConsumePending }) {
 </td>
 
                   <td>
-                    <Badge bg={APPROVAL_BADGE[lead.approval_status] || "secondary"} pill>
+                    <Badge
+                      bg={APPROVAL_BADGE[lead.approval_status] || "secondary"}
+                      text={lead.approval_status === "Not Required" ? "dark" : undefined}
+                      pill
+                    >
                       {lead.approval_status || "Draft"}
                     </Badge>
                   </td>

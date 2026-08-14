@@ -535,6 +535,24 @@ def _migrate_users_last_login() -> None:
             _conn.commit()
 
 
+def _migrate_backfill_won_approval_status() -> None:
+    """One-time fix for leads that were manually marked Won before the
+    status/approval invariant existed - a Won lead with no approved (or
+    explicitly not-required) quotation is a contradiction the dashboard
+    shouldn't display. Idempotent - only touches rows still in that state."""
+
+    with write_lock:
+        _conn.execute(
+            """
+            UPDATE quotations
+            SET approval_status = 'Not Required'
+            WHERE status = 'Won'
+              AND approval_status NOT IN ('Approved', 'Not Required')
+            """
+        )
+        _conn.commit()
+
+
 def _migrate_backfill_customers() -> None:
     """One-time backfill: derive a customers row per distinct phone from
     existing quotations (seeded from that phone's most recent quotation),
@@ -670,6 +688,7 @@ def init_db() -> None:
     _migrate_messages_columns()
     _migrate_users_last_login()
     _migrate_backfill_customers()
+    _migrate_backfill_won_approval_status()
     _migrate_seed_products()
 
 def _migrate_messages_role() -> None:

@@ -12,11 +12,24 @@ const SALES_TEMPLATE_PREVIEW =
   "consumables and would be happy to assist with your requirements. " +
   "Please let us know if you currently have any requirements we can help with.";
 
-// Shared by Sales Inbox's "+ New Conversation" (manual number entry) and
-// any "Message Customer" entry point that already knows the customer's
-// phone (e.g. from a quotation) - initialPhone skips straight to the 24h
-// window check instead of asking the user to type the number in.
-export default function WhatsAppMessageModal({ show, onClose, onStarted, initialPhone }) {
+const ORDER_CONFIRMATION_DEFAULT_MESSAGE =
+  "Hi, we have received your order. We will send you the bill shortly.";
+
+// Shared by Sales Inbox's "+ New Conversation" (manual number entry), any
+// "Message Customer" entry point that already knows the customer's phone
+// (e.g. from a quotation) - initialPhone skips straight to the 24h window
+// check instead of asking the user to type the number in - and "Confirm
+// Order" (orderConfirmation), which pre-fills the order-received message
+// and, once it actually sends, tells the caller via onOrderConfirmed so the
+// lead can be marked Won without ever going through the quotation flow.
+export default function WhatsAppMessageModal({
+  show,
+  onClose,
+  onStarted,
+  initialPhone,
+  orderConfirmation = false,
+  onOrderConfirmed,
+}) {
   const [phone, setPhone] = useState("");
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState("");
@@ -71,6 +84,13 @@ export default function WhatsAppMessageModal({ show, onClose, onStarted, initial
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, initialPhone]);
 
+  useEffect(() => {
+    if (orderConfirmation && result?.window_open && !message) {
+      setMessage(ORDER_CONFIRMATION_DEFAULT_MESSAGE);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderConfirmation, result]);
+
   async function handleSendFreeform() {
     if ((!message.trim() && !attachment) || !result?.session_id) return;
 
@@ -83,7 +103,8 @@ export default function WhatsAppMessageModal({ show, onClose, onStarted, initial
       } else {
         await sendSalesReply(result.session_id, message);
       }
-      onStarted(result.session_id);
+      onStarted?.(result.session_id);
+      if (orderConfirmation) await onOrderConfirmed?.();
       reset();
     } catch (err) {
       setSendError(err.response?.data?.message || "Could not send message.");
@@ -107,7 +128,11 @@ export default function WhatsAppMessageModal({ show, onClose, onStarted, initial
     }
   }
 
-  const title = initialPhone ? "Message Customer" : "New WhatsApp Conversation";
+  const title = orderConfirmation
+    ? "Confirm Order"
+    : initialPhone
+    ? "Message Customer"
+    : "New WhatsApp Conversation";
 
   return (
     <Modal show={show} onHide={handleClose} centered>
@@ -150,6 +175,15 @@ export default function WhatsAppMessageModal({ show, onClose, onStarted, initial
               This customer's 24-hour conversation window is open - you can send a
               normal message to <strong>{result.customer_phone}</strong>.
             </div>
+            {orderConfirmation && (
+              <div
+                className="p-2 small mb-2"
+                style={{ background: "#fff8e6", border: "1px solid rgba(237,161,0,0.3)", borderRadius: "8px" }}
+              >
+                Sending this will mark the lead as <strong>Won</strong> with approval{" "}
+                <strong>Not Required</strong> - no quotation will be created.
+              </div>
+            )}
             <Form.Control
               as="textarea"
               rows={3}
@@ -194,6 +228,13 @@ export default function WhatsAppMessageModal({ show, onClose, onStarted, initial
             <div className="small text-muted mt-2">
               Once they reply, this becomes a normal conversation.
             </div>
+            {orderConfirmation && (
+              <div className="small text-danger mt-2">
+                This generic template isn't an order confirmation, so sending it
+                here won't mark the lead Won - wait for their reply, then use
+                Confirm Order again.
+              </div>
+            )}
           </>
         )}
 
