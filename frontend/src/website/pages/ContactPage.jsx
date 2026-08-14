@@ -147,7 +147,7 @@ export default function ContactPage() {
                 <FaPhoneAlt className="tw-mt-1 tw-shrink-0 tw-text-aadrik-wine" />
                 <div>
                   <dt className="tw-font-semibold tw-text-aadrik-charcoal">Phone</dt>
-                  <dd className="tw-text-aadrik-charcoal/60">+91 98400 50923</dd>
+                  <dd className="tw-text-aadrik-charcoal/60">+91 99401 16155</dd>
                 </div>
               </div>
               <div className="tw-flex tw-items-start tw-gap-3">

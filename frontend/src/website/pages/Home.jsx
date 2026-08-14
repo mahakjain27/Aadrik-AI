@@ -332,7 +332,7 @@ export default function Home() {
             <dl className="tw-mt-8 tw-space-y-5 tw-text-sm">
               <div>
                 <dt className="tw-font-semibold tw-text-aadrik-charcoal">Phone</dt>
-                <dd className="tw-text-aadrik-charcoal/60">+91 98400 50923</dd>
+                <dd className="tw-text-aadrik-charcoal/60">+91 99401 16155</dd>
               </div>
               <div>
                 <dt className="tw-font-semibold tw-text-aadrik-charcoal">Email</dt>

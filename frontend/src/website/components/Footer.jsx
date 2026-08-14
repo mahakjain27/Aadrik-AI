@@ -58,7 +58,7 @@ export default function Footer() {
             <ul className="tw-mt-4 tw-space-y-3 tw-text-sm tw-text-white/70">
               <li className="tw-flex tw-items-start tw-gap-2">
                 <FaPhoneAlt className="tw-mt-1 tw-shrink-0 tw-text-aadrik-wineLight" />
-                <span>+91 98400 50923</span>
+                <span>+91 99401 16155</span>
               </li>
               <li className="tw-flex tw-items-start tw-gap-2">
                 <FaEnvelope className="tw-mt-1 tw-shrink-0 tw-text-aadrik-wineLight" />
