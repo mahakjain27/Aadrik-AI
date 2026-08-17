@@ -20,6 +20,13 @@ High Quality Grinding & Cutting Abrasives giving very good cut rate along with v
 
 ## Flux Cored Wires
 
+### E 71T-1
+
+Grade: E71T-1
+Stock status: In Stock
+
+FCAW requires a continuously-fed consumable tubular electrode containing a flux and a constant-voltage or, less commonly, a constant-current welding power supply.
+
 ### RASI E 308LT1-1
 
 Brand: RASI
@@ -36,38 +43,6 @@ Stock status: In Stock
 
 FCAW requires a continuously-fed consumable tubular electrode containing a flux and a constant-voltage or, less commonly, a constant-current welding power supply.
 
-### RASI E 70C-6M
-
-Brand: RASI
-Grade: E 70C-6M
-Stock status: In Stock
-
-FCAW requires a continuously-fed consumable tubular electrode containing a flux and a constant-voltage or, less commonly, a constant-current welding power supply.
-
-### RASI E 71T-1C
-
-Brand: RASI
-Grade: E71T-1
-Stock status: In Stock
-
-FCAW requires a continuously-fed consumable tubular electrode containing a flux and a constant-voltage or, less commonly, a constant-current welding power supply.
-
-### RASI E 71T-5
-
-Brand: RASI
-Grade: E 71T-5
-Stock status: In Stock
-
-FCAW requires a continuously-fed consumable tubular electrode containing a flux and a constant-voltage or, less commonly, a constant-current welding power supply.
-
-### RASI E 90T5-G
-
-Brand: RASI
-Grade: E 90T5-G
-Stock status: In Stock
-
-FCAW requires a continuously-fed consumable tubular electrode containing a flux and a constant-voltage or, less commonly, a constant-current welding power supply.
-
 ### RASI HF 60T
 
 Brand: RASI
@@ -75,22 +50,37 @@ Stock status: In Stock
 
 FCAW requires a continuously-fed consumable tubular electrode containing a flux and a constant-voltage or, less commonly, a constant-current welding power supply.
 
+## Hard Facing
+
+### RASI HF 350
+
+Brand: RASI
+Stock status: In Stock
+
+### RASI HF 550R
+
+Brand: RASI
+Stock status: In Stock
+
+### RASI HF 600LH
+
+Brand: RASI
+Stock status: In Stock
+
+### RASI HF 650R
+
+Brand: RASI
+Stock status: In Stock
+
 ## MIG / MAG Welding Wire
 
 ### Rasi CO2 MIG Wire (ER70S-6)
 
 Brand: RASI co2 wire
 Grade: ER70S-6
-Available sizes: 0.80 mm,1.00 mm,1.20 mm,0.80 mm (12.5 kg Spool)
+Available sizes: 0.80 mm,1.00 mm,1.20 mm,1.60mm,0.80 mm (12.5 kg Spool)
 Stock status: In Stock
 Applications: CO2 Welding,MIG Welding,Fabrication,Automobile Industry
-
-### Rasi SS MIG Wire
-
-Brand: RASI SS MIG wire
-Available sizes: 0.80 mm,1.20 mm
-Stock status: In Stock
-Applications: MIG Welding,Stainless Steel Fabrication,Food Processing Equipment,Chemical Industry
 
 ### Rasi SS MIG Wire
 
@@ -168,6 +158,7 @@ Applications: MIG Welding,Stainless Steel Fabrication,Food Processing Equipment,
 
 ### Red Oxide Primer
 
+Available sizes: 1L,4L,20L
 Packaging: 1 Litre,4 Litres,20 Litres
 Stock status: In Stock
 Applications: Metal surface protection,Corrosion resistance,Industrial painting
@@ -273,6 +264,7 @@ Applications: TIG Welding,Stainless Steel Welding,Precision Fabrication
 ### Tungsten Electrode
 
 Grade: EWP
+Available sizes: 1.60mm,2.00mm,2.40mm,3.00mm,4.00mm,5.00mm
 Stock status: In Stock
 
 Tungsten electrodes (AWS classification EWP) contain 99.50 percent tungsten, have the highest consumption rate of all electrodes, and typically are less expensive than their alloyed counterparts.
@@ -318,6 +310,24 @@ Grade: E6013
 Available sizes: 3.15 mm,4.00 mm
 Stock status: In Stock
 Applications: General fabrication,Mild steel welding,Structural welding,Repair and maintenance work
+
+### RASI 6013R
+
+Brand: RASI
+Available sizes: 4.00mm
+Stock status: In Stock
+
+### RASI 6013RR
+
+Brand: RASI
+Available sizes: 4.00mm
+Stock status: In Stock
+
+### RASI E7016
+
+Brand: RASI
+Available sizes: 2.50 mm,3.15 mm
+Stock status: In Stock
 
 ### Rasi 7018 LH Electrodes
 

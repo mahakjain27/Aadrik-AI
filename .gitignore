@@ -29,3 +29,13 @@ frontend/dist-ssr/
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Python virtual environment
+backend/.venv/
+
+# Local database backups
+backend/database/backup/
+
+# Editor/temporary backup files
+*.bak
+*.save

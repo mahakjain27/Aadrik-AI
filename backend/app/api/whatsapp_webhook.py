@@ -89,6 +89,16 @@ _TRACKED_STATUSES = {"sent", "delivered", "read", "failed"}
 def _handle_status_update(status_update: dict) -> None:
     wamid = status_update.get("id")
     status = status_update.get("status")
+    recipient_id = status_update.get("recipient_id")
+    errors = status_update.get("errors")
+
+    logger.info(
+        f"WhatsApp delivery status received | "
+        f"wamid={wamid} | "
+        f"status={status} | "
+        f"recipient={recipient_id} | "
+        f"errors={errors}"
+    )
 
     if not wamid or status not in _TRACKED_STATUSES:
         return
