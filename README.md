@@ -22,7 +22,7 @@ An internal AI-powered sales platform for **Aadrik Distributors Pvt. Ltd.** (wel
 - **Session history** — chats are persisted per logged-in user and resumable from the sidebar.
 - **WhatsApp integration** — customers can chat with the same AI assistant over WhatsApp (Meta Cloud API webhook), browse the catalog through native interactive list menus, and get a link to a public quotation form; approved quotes can be sent back as a WhatsApp PDF document. WhatsApp conversations land in the CRM as leads with `whatsapp` as the source.
 - **Sales Inbox** — a live queue (WebSocket-backed) of conversations needing a human, filterable by status (Waiting for Sales / AI Handling / Open / Closed / Archived), with reply, close/reopen, and archive actions. Replies are actually pushed to the customer's WhatsApp via the Cloud API, not just saved to the local thread. Conversations show the customer's name and company where known — the customer's own WhatsApp profile name (captured from every inbound message), the name given on a website contact form, or a matching CRM record, in that order of preference — falling back gracefully to just the phone number rather than showing nothing.
-- **Message Customer** — a quotation can be messaged directly over WhatsApp without ever creating or sending a quote, reusing the same 24h-window/template-fallback logic as "+ New Conversation" below.
+- **Message Customer** — a quotation can be messaged directly over WhatsApp without ever creating or sending a quote, reusing the same 24h-window/template-fallback logic as "+ New Conversation" below, but falling back to a separate `order_received` template (not the sales-outreach one) since this is an existing customer being contacted about an order, not cold outreach.
 - **Start new WhatsApp conversations** — "+ New Conversation" in Sales Inbox lets staff message a number that hasn't messaged in (or ever). It checks Meta's 24h customer-service window automatically: if it's open, a normal free-text message is sent; if it's closed (or the number is brand new), it walks staff through sending an approved outreach template instead, since Meta doesn't allow free text outside that window.
 - **WhatsApp attachments** — staff can attach a PDF/JPG/PNG (e.g. an invoice) to a reply, both from an ongoing Sales Inbox conversation and from the "+ New Conversation" flow, sent as a native WhatsApp document message.
 - **Public quotation form** — an unauthenticated, mobile-friendly page (linked from WhatsApp) customers fill out directly to request a quote, no login required.
@@ -121,6 +121,8 @@ Environment variables (create `backend/app/.env`):
 | `WHATSAPP_CONTACT_TEMPLATE_LANG` | `en_US` | Language code the contact-form template was approved under — must match exactly, or the send silently fails |
 | `WHATSAPP_SALES_TEMPLATE_NAME` | `sales_introduction` | Approved Meta template Sales Inbox's "+ New Conversation" uses to business-initiate a chat outside the 24h window — a separate template from the contact-form one, since the wording differs |
 | `WHATSAPP_SALES_TEMPLATE_LANG` | `en` | Language code the sales-outreach template was approved under |
+| `WHATSAPP_ORDER_RECEIVED_TEMPLATE_NAME` | `order_received` | Approved Meta template used to message an existing customer about an order (e.g. via "Message Customer") once the 24h window has closed — separate from the sales-outreach template since the wording differs |
+| `WHATSAPP_ORDER_RECEIVED_TEMPLATE_LANG` | `en` | Language code the order-received template was approved under |
 
 ## Running the frontend
 
