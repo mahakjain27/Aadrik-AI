@@ -345,8 +345,11 @@ export async function checkWhatsAppNumber(phone) {
   return response.data;
 }
 
-export async function sendWhatsAppTemplate(phone) {
-  const response = await api.post("/sessions/whatsapp/send-template", { phone });
+export async function sendWhatsAppTemplate(phone, templateType = "sales") {
+  const response = await api.post("/sessions/whatsapp/send-template", {
+    phone,
+    template_type: templateType,
+  });
   return response.data;
 }
 

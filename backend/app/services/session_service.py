@@ -377,15 +377,33 @@ def check_whatsapp_number(phone: str) -> dict:
     }
 
 
-def send_whatsapp_outreach(phone: str, current_user) -> dict:
-    """Business-initiates a WhatsApp conversation with `phone` using the
-    approved sales-outreach template (see settings.whatsapp_sales_template_name) -
-    used both for a brand-new number and for an existing customer whose 24h
-    window has closed. Creates the session on first use if one doesn't
-    already exist."""
+def send_whatsapp_outreach(
+    phone: str,
+    current_user,
+    template_type: str = "sales",
+) -> dict:
+    """Business-initiates a WhatsApp conversation using an approved Meta
+    template.
+
+    `sales` is used for a brand-new/cold conversation.
+    `order_received` is used when contacting an existing customer about
+    an order after the 24-hour customer-service window has closed.
+    """
 
     normalized = normalize_indian_phone(phone)
     session = queries.get_active_session_by_phone(normalized, "whatsapp")
+
+    if template_type == "order_received":
+        template_name = settings.whatsapp_order_received_template_name
+        template_lang = settings.whatsapp_order_received_template_lang
+    elif template_type == "sales":
+        template_name = settings.whatsapp_sales_template_name
+        template_lang = settings.whatsapp_sales_template_lang
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid WhatsApp template type.",
+        )
 
     if session is None:
         session_id = str(uuid.uuid4())
@@ -402,33 +420,41 @@ def send_whatsapp_outreach(phone: str, current_user) -> dict:
 
     wamid = send_whatsapp_template(
         normalized,
-        settings.whatsapp_sales_template_name,
-        settings.whatsapp_sales_template_lang,
+        template_name,
+        template_lang,
     )
 
     if wamid is None:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=(
-                "Could not send the WhatsApp template - check it's approved in "
-                "Meta Business Manager and WHATSAPP_SALES_TEMPLATE_NAME matches it."
+                f"Could not send the WhatsApp template '{template_name}' - "
+                "check that it is approved in Meta Business Manager and that "
+                "the configured template name and language are correct."
             ),
         )
 
     queries.insert_message(
         session_id,
         "sales",
-        f"[Sent WhatsApp template: {settings.whatsapp_sales_template_name}]",
+        f"[Sent WhatsApp template: {template_name}]",
     )
 
-    if session is not None and session["status"] in ("Waiting for Sales", "AI Handling", "Closed"):
+    if session is not None and session["status"] in (
+        "Waiting for Sales",
+        "AI Handling",
+        "Closed",
+    ):
         queries.update_session_status(session_id, "Open")
 
     log_activity(
         actor_id=current_user["id"],
         action="session.outreach_sent",
         entity_type="session",
-        message=f"{current_user['name']} started a WhatsApp conversation with {normalized}.",
+        message=(
+            f"{current_user['name']} started a WhatsApp conversation with "
+            f"{normalized} using {template_name}."
+        ),
     )
 
     return {"session_id": session_id}

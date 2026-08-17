@@ -66,6 +66,7 @@ class CheckWhatsAppNumberResponse(BaseModel):
 
 class SendWhatsAppTemplateRequest(BaseModel):
     phone: str
+    template_type: str = "sales"
 
 
 class SendWhatsAppTemplateResponse(BaseModel):

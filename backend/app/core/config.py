@@ -91,6 +91,16 @@ class Settings:
         "WHATSAPP_SALES_TEMPLATE_LANG", "en"
     )
 
+    # Pre-approved Meta template used by Sales Inbox's "Message Customer"
+    # when the 24-hour customer-service window has closed.
+    # This is for existing customers/orders, not new sales outreach.
+    whatsapp_order_received_template_name: str = os.getenv(
+        "WHATSAPP_ORDER_RECEIVED_TEMPLATE_NAME", "order_received"
+    )
+    whatsapp_order_received_template_lang: str = os.getenv(
+        "WHATSAPP_ORDER_RECEIVED_TEMPLATE_LANG", "en"
+    )
+
     # --- Public origin (used to build links sent to WhatsApp customers,
     # e.g. the ngrok tunnel URL during local testing) ---
     public_base_url: str = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")

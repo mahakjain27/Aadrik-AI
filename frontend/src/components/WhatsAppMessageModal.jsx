@@ -15,6 +15,9 @@ const SALES_TEMPLATE_PREVIEW =
 const ORDER_CONFIRMATION_DEFAULT_MESSAGE =
   "Hi, we have received your order. We will send you the bill shortly.";
 
+const ORDER_RECEIVED_TEMPLATE_PREVIEW =
+  "Hi, we have received your order. We will send you the bill shortly.";
+
 // Shared by Sales Inbox's "+ New Conversation" (manual number entry), any
 // "Message Customer" entry point that already knows the customer's phone
 // (e.g. from a quotation) - initialPhone skips straight to the 24h window
@@ -118,7 +121,10 @@ export default function WhatsAppMessageModal({
     setSendError("");
 
     try {
-      const data = await sendWhatsAppTemplate(result.customer_phone);
+      const data = await sendWhatsAppTemplate(
+        result.customer_phone,
+        initialPhone || orderConfirmation ? "order_received" : "sales"
+      );
       onStarted(data.session_id);
       reset();
     } catch (err) {

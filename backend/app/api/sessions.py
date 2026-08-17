@@ -217,7 +217,11 @@ def send_whatsapp_template_route(
         "sales",
     )),
 ):
-    return send_whatsapp_outreach(body.phone, current_user)
+    return send_whatsapp_outreach(
+        body.phone,
+        current_user,
+        body.template_type,
+    )
 
 
 @router.post("/sessions/{session_id}/close")
