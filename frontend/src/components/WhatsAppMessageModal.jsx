@@ -229,7 +229,9 @@ export default function WhatsAppMessageModal({
               <div className="fw-semibold mb-1" style={{ color: "#6f42c1" }}>
                 Template preview
               </div>
-              {SALES_TEMPLATE_PREVIEW}
+              {initialPhone || orderConfirmation
+                ? ORDER_RECEIVED_TEMPLATE_PREVIEW
+                : SALES_TEMPLATE_PREVIEW}
             </div>
             <div className="small text-muted mt-2">
               Once they reply, this becomes a normal conversation.
