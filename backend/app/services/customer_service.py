@@ -74,7 +74,7 @@ def get_customer(customer_id: int):
 
     quotations = conn.execute(
         """
-        SELECT id, product_name, status, approval_status, sent_at, created_at
+        SELECT id, product_name, items_summary, status, approval_status, sent_at, created_at
         FROM quotations
         WHERE customer_id = ?
         ORDER BY created_at DESC

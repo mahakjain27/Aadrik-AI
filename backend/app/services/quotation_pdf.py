@@ -19,7 +19,7 @@ from reportlab.platypus import (
 
 from app.core.company import COMPANY
 from app.services.lead_scoring import _parse_quantity
-from app.services.quotation_pricing import compute_quotation_totals
+from app.services.quotation_pricing import aggregate_quotation_totals, compute_quotation_totals
 
 NAVY = colors.HexColor("#1F3B64")
 BORDER_GREY = colors.HexColor("#c9ccd1")
@@ -28,7 +28,7 @@ MUTED_GREY = colors.HexColor("#666666")
 LOGO_PATH = Path(__file__).resolve().parent.parent / "logo.jpeg"
 
 
-def generate_quotation_pdf(lead):
+def generate_quotation_pdf(lead, items):
     buffer = BytesIO()
 
     doc = SimpleDocTemplate(
@@ -309,19 +309,47 @@ def generate_quotation_pdf(lead):
     story.append(section_bar("PRODUCT DETAILS"))
 
     product_header = ["Description", "Brand", "Size", "Qty", "Unit", "Rate", "Amount"]
-    product_row = [
-        lead["product_name"] or "-",
-        lead["brand"] or "-",
-        lead["size"] or "-",
-        lead["quantity"] or "-",
-        "-",
-        f"Rs. {lead['unit_price']:.2f}" if lead["unit_price"] is not None else "-",
-        f"Rs. {lead['subtotal']:.2f}" if lead["subtotal"] is not None else "-",
-    ]
+
+    item_totals = []
+    product_rows = []
+    for item in items:
+        quantity_number = _parse_quantity(item["quantity"])
+        totals = (
+            compute_quotation_totals(
+                unit_price=item["unit_price"],
+                quantity=quantity_number,
+                gst_percent=item["gst_percent"] or 18,
+                discount_type=item["discount_type"] or "percent",
+                discount_percent=item["discount_percent"] or 0,
+                discount_amount=item["discount_amount"] or 0,
+                special_discount_percent=item["special_discount_percent"] or 0,
+                special_discount_amount=item["special_discount_amount"] or 0,
+            )
+            if item["unit_price"] is not None and quantity_number
+            else None
+        )
+        if totals:
+            item_totals.append(totals)
+
+        product_rows.append(
+            [
+                item["product_name"] or "-",
+                item["brand"] or "-",
+                item["size"] or "-",
+                item["quantity"] or "-",
+                "-",
+                f"Rs. {item['unit_price']:.2f}" if item["unit_price"] is not None else "-",
+                f"Rs. {totals['subtotal']:.2f}" if totals else "-",
+            ]
+        )
+
     product_table = Table(
         [
             [Paragraph(h, table_header_style) for h in product_header],
-            [Paragraph(str(v), table_cell_style) for v in product_row],
+            *[
+                [Paragraph(str(v), table_cell_style) for v in row]
+                for row in product_rows
+            ],
         ],
         colWidths=[
             width * 0.26,
@@ -348,72 +376,48 @@ def generate_quotation_pdf(lead):
     story.append(product_table)
 
     # ---------- Totals ----------
-    gst_rate = lead["gst_percent"] if lead["gst_percent"] is not None else COMPANY["gst_rate_percent"]
-    quantity_number = _parse_quantity(lead["quantity"])
+    agg = aggregate_quotation_totals(item_totals) if item_totals else None
 
-    totals_values = (
-        compute_quotation_totals(
-            unit_price=lead["unit_price"],
-            quantity=quantity_number,
-            gst_percent=gst_rate,
-            discount_type=lead["discount_type"] or "percent",
-            discount_percent=lead["discount_percent"] or 0,
-            discount_amount=lead["discount_amount"] or 0,
-            special_discount_percent=lead["special_discount_percent"] or 0,
-            special_discount_amount=lead["special_discount_amount"] or 0,
-        )
-        if lead["unit_price"] is not None and quantity_number
-        else None
-    )
-
-    subtotal = totals_values["subtotal"] if totals_values else lead["subtotal"]
-    gst_amount = round(subtotal * gst_rate / 100, 2) if subtotal is not None else None
-    grand_total = round(subtotal + gst_amount, 2) if subtotal is not None else None
+    subtotal = agg["subtotal"] if agg else lead["subtotal"]
+    gst_amount = agg["gst_amount"] if agg else None
+    grand_total = agg["grand_total"] if agg else lead["grand_total"]
 
     totals_rows = []
 
-    if totals_values and totals_values["normal_discount_amount"] > 0:
-        discount_label = (
-            f"Normal Discount ({lead['discount_percent']}%)"
-            if (lead["discount_type"] or "percent") == "percent"
-            else "Normal Discount (Flat)"
-        )
+    if agg and agg["normal_discount_amount"] > 0:
         totals_rows.append(
             [
                 Paragraph("Original Price", totals_label_style),
-                Paragraph(f"Rs. {totals_values['original_subtotal']:.2f}", totals_value_style),
+                Paragraph(f"Rs. {agg['original_subtotal']:.2f}", totals_value_style),
             ]
         )
         totals_rows.append(
             [
-                Paragraph(discount_label, totals_label_style),
+                Paragraph("Normal Discount", totals_label_style),
                 Paragraph(
-                    f"- Rs. {totals_values['normal_discount_amount']:.2f}",
+                    f"- Rs. {agg['normal_discount_amount']:.2f}",
                     totals_value_style,
                 ),
             ]
         )
 
-    if totals_values and totals_values["special_discount_percent_amount"] > 0:
+    if agg and agg["special_discount_percent_amount"] > 0:
         totals_rows.append(
             [
+                Paragraph("Special Discount (%)", totals_label_style),
                 Paragraph(
-                    f"Special Discount ({lead['special_discount_percent']}%)",
-                    totals_label_style,
-                ),
-                Paragraph(
-                    f"- Rs. {totals_values['special_discount_percent_amount']:.2f}",
+                    f"- Rs. {agg['special_discount_percent_amount']:.2f}",
                     totals_value_style,
                 ),
             ]
         )
 
-    if totals_values and totals_values["special_discount_flat_amount"] > 0:
+    if agg and agg["special_discount_flat_amount"] > 0:
         totals_rows.append(
             [
                 Paragraph("Special Discount (Flat)", totals_label_style),
                 Paragraph(
-                    f"- Rs. {totals_values['special_discount_flat_amount']:.2f}",
+                    f"- Rs. {agg['special_discount_flat_amount']:.2f}",
                     totals_value_style,
                 ),
             ]
@@ -430,7 +434,7 @@ def generate_quotation_pdf(lead):
     )
     totals_rows.append(
         [
-            Paragraph(f"GST ({gst_rate}%)", totals_label_style),
+            Paragraph("GST", totals_label_style),
             Paragraph(
                 f"Rs. {gst_amount:.2f}" if gst_amount is not None else "-",
                 totals_value_style,

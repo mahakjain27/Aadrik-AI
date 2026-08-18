@@ -272,6 +272,9 @@ export default function CRMDashboard({ pendingQuotationId, onConsumePending }) {
     getQuoteNumber(lead).toLowerCase().includes(query) ||
     lead.company_name.toLowerCase().includes(query) ||
     lead.product_name.toLowerCase().includes(query) ||
+    (lead.items || []).some((item) =>
+      (item.product_name || "").toLowerCase().includes(query)
+    ) ||
     lead.phone.toLowerCase().includes(query) ||
     (lead.contact_person || "").toLowerCase().includes(query) ||
     (lead.created_by_name || "").toLowerCase().includes(query) ||
@@ -474,9 +477,7 @@ export default function CRMDashboard({ pendingQuotationId, onConsumePending }) {
                 <th style={{ width: "9%" }}>Quote No</th>
                 <th style={{ width: "17%" }}>Company</th>
                 <th style={{ width: "9%" }}>Source</th>
-                <th style={{ width: "20%" }}>Product</th>
-                <th style={{ width: "8%" }}>Size</th>
-                <th style={{ width: "9%" }}>Quantity</th>
+                <th style={{ width: "37%" }}>Product(s)</th>
                 <th style={{ width: "14%" }}>Status</th>
                 <th style={{ width: "8%" }}>Approval</th>
                 <th style={{ width: "6%" }}>Action</th>
@@ -502,11 +503,9 @@ export default function CRMDashboard({ pendingQuotationId, onConsumePending }) {
                     <SourceBadge source={lead.source} />
                   </td>
 
-                  <td style={{ wordBreak: "break-word" }}>{lead.product_name}</td>
-
-                  <td>{lead.size || "-"}</td>
-
-                  <td>{lead.quantity}</td>
+                  <td style={{ wordBreak: "break-word" }}>
+                    {lead.items_summary || lead.product_name}
+                  </td>
 
                   <td>
   <select

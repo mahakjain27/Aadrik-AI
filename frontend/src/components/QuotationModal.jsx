@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Modal, Button, Form, Alert } from "react-bootstrap";
+import { useState, useEffect, useMemo } from "react";
+import { Modal, Button, Form, Alert, Table } from "react-bootstrap";
 import { categorizeQuantity } from "../utils/productQuantity";
 
 function QuotationModal({
@@ -7,6 +7,7 @@ function QuotationModal({
   onClose,
   product,
   selectedVariant,
+  catalog,
   onSubmit,
 }) {
   const [form, setForm] = useState({
@@ -14,37 +15,53 @@ function QuotationModal({
     contact_person: "",
     phone: "",
     email: "",
-    quantity: "",
     city: "",
     pincode: "",
     gst_number: "",
     notes: "",
   });
 
-  const quantityUnit = categorizeQuantity(product?.name).unit;
+  const [items, setItems] = useState([]);
+  const [productSearch, setProductSearch] = useState("");
 
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (show && product) {
+      setItems([{ product, selectedVariant, quantity: "" }]);
+    }
+
     if (!show) {
       setSubmitted(false);
       setSubmitting(false);
       setError(null);
+      setProductSearch("");
+      setItems([]);
       setForm({
         company_name: "",
         contact_person: "",
         phone: "",
         email: "",
-        quantity: "",
         city: "",
         pincode: "",
         gst_number: "",
         notes: "",
       });
     }
-  }, [show]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show, product, selectedVariant]);
+
+  const searchResults = useMemo(() => {
+    if (!catalog || !productSearch.trim()) return [];
+
+    const query = productSearch.toLowerCase();
+
+    return catalog.products
+      .filter((p) => [p.name, p.brand].filter(Boolean).join(" ").toLowerCase().includes(query))
+      .slice(0, 8);
+  }, [catalog, productSearch]);
 
   const handleChange = (e) => {
     setForm({
@@ -53,15 +70,30 @@ function QuotationModal({
     });
   };
 
+  function addItem(p) {
+    setItems((prev) => [...prev, { product: p, selectedVariant: p.sizes?.[0] || "", quantity: "" }]);
+    setProductSearch("");
+  }
+
+  function removeItem(index) {
+    setItems((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function updateItem(index, patch) {
+    setItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+  }
+
   const handleSubmit = async () => {
+    const missingProduct = !items.length || items.some((item) => !item.quantity.trim());
+
     if (
       !form.company_name ||
       !form.contact_person ||
       !form.phone ||
-      !form.quantity ||
-      !form.city
+      !form.city ||
+      missingProduct
     ) {
-      alert("Please fill all required fields.");
+      alert("Please fill all required fields, including quantity for every product.");
       return;
     }
 
@@ -71,9 +103,12 @@ function QuotationModal({
     try {
       await onSubmit({
         ...form,
-        product_name: product?.name,
-        brand: product?.brand,
-        size: selectedVariant,
+        items: items.map((item) => ({
+          product_name: item.product?.name,
+          brand: item.product?.brand,
+          size: item.selectedVariant,
+          quantity: item.quantity,
+        })),
       });
 
       setSubmitted(true);
@@ -110,24 +145,90 @@ function QuotationModal({
               Product Details
             </h6>
 
-            <table className="table table-sm">
+            <Table size="sm" bordered className="align-middle">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Brand</th>
+                  <th style={{ width: "140px" }}>Size</th>
+                  <th style={{ width: "160px" }}>Quantity *</th>
+                  <th style={{ width: "40px" }}></th>
+                </tr>
+              </thead>
               <tbody>
-                <tr>
-                  <td><strong>Product</strong></td>
-                  <td>{product?.name}</td>
-                </tr>
-
-                <tr>
-                  <td><strong>Brand</strong></td>
-                  <td>{product?.brand}</td>
-                </tr>
-
-                <tr>
-                  <td><strong>Size</strong></td>
-                  <td>{selectedVariant}</td>
-                </tr>
+                {items.map((item, index) => {
+                  const unit = categorizeQuantity(item.product?.name).unit;
+                  return (
+                    <tr key={index}>
+                      <td>{item.product?.name}</td>
+                      <td>{item.product?.brand}</td>
+                      <td>
+                        {item.product?.sizes?.length ? (
+                          <Form.Select
+                            size="sm"
+                            value={item.selectedVariant}
+                            onChange={(e) => updateItem(index, { selectedVariant: e.target.value })}
+                          >
+                            {item.product.sizes.map((s) => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </Form.Select>
+                        ) : (
+                          item.selectedVariant || "-"
+                        )}
+                      </td>
+                      <td>
+                        <Form.Control
+                          size="sm"
+                          placeholder={`e.g. 100 ${unit.toLowerCase()}`}
+                          value={item.quantity}
+                          onChange={(e) => updateItem(index, { quantity: e.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="text-danger p-0"
+                          disabled={items.length === 1}
+                          onClick={() => removeItem(index)}
+                        >
+                          Remove
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
-            </table>
+            </Table>
+
+            {catalog && (
+              <div className="mb-3 position-relative">
+                <Form.Control
+                  size="sm"
+                  placeholder="+ Add another product..."
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                />
+                {searchResults.length > 0 && (
+                  <div
+                    className="border rounded bg-white shadow-sm position-absolute w-100"
+                    style={{ zIndex: 1050, maxHeight: "200px", overflowY: "auto" }}
+                  >
+                    {searchResults.map((p) => (
+                      <div
+                        key={p.name + p.brand}
+                        className="px-2 py-1 small"
+                        style={{ cursor: "pointer" }}
+                        onMouseDown={() => addItem(p)}
+                      >
+                        {p.name} {p.brand ? `(${p.brand})` : ""}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <hr />
 
@@ -169,21 +270,6 @@ function QuotationModal({
                   value={form.email}
                   onChange={handleChange}
                 />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>
-                  Quantity * <span className="text-muted">(in {quantityUnit})</span>
-                </Form.Label>
-                <Form.Control
-                  name="quantity"
-                  placeholder={`e.g. 100 ${quantityUnit.toLowerCase()}`}
-                  value={form.quantity}
-                  onChange={handleChange}
-                />
-                <Form.Text className="text-muted">
-                  This product is sold in {quantityUnit.toLowerCase()} — please enter quantity accordingly.
-                </Form.Text>
               </Form.Group>
 
               <Form.Group className="mb-3">

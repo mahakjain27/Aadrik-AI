@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -17,7 +18,7 @@ from app.services.activity_log import log_activity
 from app.services.lead_scoring import _parse_quantity
 from app.services.quotation_email import send_quotation_email
 from app.services.quotation_pdf import generate_quotation_pdf
-from app.services.quotation_pricing import compute_quotation_totals
+from app.services.quotation_pricing import aggregate_quotation_totals, compute_quotation_totals
 from app.services.quotation_whatsapp import send_quotation_whatsapp
 
 APPROVAL_ROLES = ("admin", "sales", "manager")
@@ -42,6 +43,12 @@ def _get_quotation_or_404(conn, quotation_id: int):
     return lead
 
 
+def _items_summary(request: QuotationRequest) -> str:
+    first = request.items[0].product_name
+    extra = len(request.items) - 1
+    return f"{first} +{extra} more" if extra else first
+
+
 def _insert_quotation(
     request: QuotationRequest,
     created_by: int | None,
@@ -58,6 +65,8 @@ def _insert_quotation(
         city=request.delivery_city,
     )
 
+    first = request.items[0]
+
     with write_lock:
         cursor = conn.execute(
             """
@@ -71,6 +80,7 @@ def _insert_quotation(
                 brand,
                 size,
                 quantity,
+                items_summary,
                 delivery_city,
                 pincode,
                 gst_number,
@@ -80,17 +90,18 @@ def _insert_quotation(
                 customer_id
             )
             VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 request.company_name,
                 request.contact_person,
                 request.phone,
                 request.email,
-                request.product_name,
-                request.brand,
-                request.size,
-                request.quantity,
+                first.product_name,
+                first.brand,
+                first.size,
+                first.quantity,
+                _items_summary(request),
                 request.delivery_city,
                 request.pincode,
                 request.gst_number,
@@ -101,9 +112,21 @@ def _insert_quotation(
             ),
         )
 
+        quotation_id = cursor.lastrowid
+
+        for i, item in enumerate(request.items):
+            conn.execute(
+                """
+                INSERT INTO quotation_items
+                (quotation_id, product_name, brand, size, quantity, sort_order)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (quotation_id, item.product_name, item.brand, item.size, item.quantity, i),
+            )
+
         conn.commit()
 
-    return cursor.lastrowid
+    return quotation_id
 
 
 router = APIRouter(
@@ -180,8 +203,9 @@ def download_pdf(
 ):
     conn = get_conn()
     lead = _get_quotation_or_404(conn, quotation_id)
+    items = queries.get_quotation_items(conn, quotation_id)
 
-    pdf = generate_quotation_pdf(lead)
+    pdf = generate_quotation_pdf(lead, items)
 
     quote_no = f"AD-{lead['created_at'][:4]}-{str(lead['id']).zfill(4)}"
 
@@ -197,6 +221,26 @@ def download_pdf(
 # -------------------------------
 # Set Pricing
 # -------------------------------
+def _item_snapshot(row, totals: dict | None = None) -> dict:
+    snap = {
+        "item_id": row["id"],
+        "product_name": row["product_name"],
+        "unit_price": row["unit_price"],
+        "gst_percent": row["gst_percent"],
+        "discount_type": row["discount_type"],
+        "discount_percent": row["discount_percent"],
+        "discount_amount": row["discount_amount"],
+        "special_discount_percent": row["special_discount_percent"],
+        "special_discount_amount": row["special_discount_amount"],
+        "subtotal": row["subtotal"],
+        "grand_total": row["grand_total"],
+    }
+    if totals is not None:
+        snap["subtotal"] = totals["subtotal"]
+        snap["grand_total"] = totals["grand_total"]
+    return snap
+
+
 @router.put("/{quotation_id}/pricing")
 def set_pricing(
     quotation_id: int,
@@ -205,92 +249,101 @@ def set_pricing(
 ):
     conn = get_conn()
     lead = _get_quotation_or_404(conn, quotation_id)
+    existing_items = queries.get_quotation_items(conn, quotation_id)
+    existing_by_id = {row["id"]: row for row in existing_items}
 
-    quantity_number = _parse_quantity(lead["quantity"])
-
-    if not quantity_number:
+    if {i.item_id for i in body.items} != set(existing_by_id.keys()):
         raise HTTPException(
             status_code=400,
-            detail="Cannot compute pricing: this quotation's quantity has no numeric value.",
+            detail="Pricing must be submitted for every product line on this quotation.",
         )
 
-    totals = compute_quotation_totals(
-        unit_price=body.unit_price,
-        quantity=quantity_number,
-        gst_percent=body.gst_percent,
-        discount_type=body.discount_type,
-        discount_percent=body.discount_percent,
-        discount_amount=body.discount_amount,
-        special_discount_percent=body.special_discount_percent,
-        special_discount_amount=body.special_discount_amount,
-    )
+    item_totals = []
+    for item_body in body.items:
+        existing = existing_by_id[item_body.item_id]
+        quantity_number = _parse_quantity(existing["quantity"])
+
+        if not quantity_number:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Cannot compute pricing for '{existing['product_name']}': "
+                    "this line's quantity has no numeric value."
+                ),
+            )
+
+        totals = compute_quotation_totals(
+            unit_price=item_body.unit_price,
+            quantity=quantity_number,
+            gst_percent=item_body.gst_percent,
+            discount_type=item_body.discount_type,
+            discount_percent=item_body.discount_percent,
+            discount_amount=item_body.discount_amount,
+            special_discount_percent=item_body.special_discount_percent,
+            special_discount_amount=item_body.special_discount_amount,
+        )
+        item_totals.append((item_body, existing, totals))
+
+    agg = aggregate_quotation_totals([totals for _, _, totals in item_totals])
 
     # A quotation that's already been approved can still be re-priced (people
     # make mistakes), but the change is significant enough to leave a paper
     # trail - the frontend gates this behind a confirmation dialog, and we
     # record what changed here regardless of how the request got confirmed.
     was_approved = lead["approval_status"] == "Approved"
-    old_grand_total = None
-
-    if was_approved and lead["subtotal"] is not None and lead["gst_percent"] is not None:
-        old_gst_amount = round(lead["subtotal"] * lead["gst_percent"] / 100, 2)
-        old_grand_total = round(lead["subtotal"] + old_gst_amount, 2)
+    old_items_snapshot = [_item_snapshot(row) for row in existing_items] if was_approved else None
+    old_grand_total = lead["grand_total"] if was_approved else None
 
     with write_lock:
+        for item_body, existing, totals in item_totals:
+            conn.execute(
+                """
+                UPDATE quotation_items
+                SET unit_price = ?,
+                    gst_percent = ?,
+                    discount_type = ?,
+                    discount_percent = ?,
+                    discount_amount = ?,
+                    special_discount_percent = ?,
+                    special_discount_amount = ?,
+                    subtotal = ?,
+                    grand_total = ?
+                WHERE id = ?
+                """,
+                (
+                    item_body.unit_price,
+                    item_body.gst_percent,
+                    item_body.discount_type,
+                    item_body.discount_percent,
+                    item_body.discount_amount,
+                    item_body.special_discount_percent,
+                    item_body.special_discount_amount,
+                    totals["subtotal"],
+                    totals["grand_total"],
+                    item_body.item_id,
+                ),
+            )
+
         conn.execute(
-            """
-            UPDATE quotations
-            SET unit_price = ?,
-                gst_percent = ?,
-                discount_type = ?,
-                discount_percent = ?,
-                discount_amount = ?,
-                special_discount_percent = ?,
-                special_discount_amount = ?,
-                subtotal = ?
-            WHERE id = ?
-            """,
-            (
-                body.unit_price,
-                body.gst_percent,
-                body.discount_type,
-                body.discount_percent,
-                body.discount_amount,
-                body.special_discount_percent,
-                body.special_discount_amount,
-                totals["subtotal"],
-                quotation_id,
-            ),
+            "UPDATE quotations SET subtotal = ?, grand_total = ? WHERE id = ?",
+            (agg["subtotal"], agg["grand_total"], quotation_id),
         )
 
         if was_approved:
+            new_items = queries.get_quotation_items(conn, quotation_id)
             conn.execute(
                 """
                 INSERT INTO quotation_price_history
-                (
-                    quotation_id,
-                    old_unit_price, new_unit_price,
-                    old_discount_type, new_discount_type,
-                    old_discount_percent, new_discount_percent,
-                    old_discount_amount, new_discount_amount,
-                    old_special_discount_percent, new_special_discount_percent,
-                    old_special_discount_amount, new_special_discount_amount,
-                    old_gst_percent, new_gst_percent,
-                    old_grand_total, new_grand_total,
-                    changed_by
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (quotation_id, old_items_json, new_items_json, old_grand_total,
+                 new_grand_total, changed_by)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     quotation_id,
-                    lead["unit_price"], body.unit_price,
-                    lead["discount_type"], body.discount_type,
-                    lead["discount_percent"], body.discount_percent,
-                    lead["discount_amount"], body.discount_amount,
-                    lead["special_discount_percent"], body.special_discount_percent,
-                    lead["special_discount_amount"], body.special_discount_amount,
-                    lead["gst_percent"], body.gst_percent,
-                    old_grand_total, totals["grand_total"],
+                    json.dumps(old_items_snapshot),
+                    json.dumps([_item_snapshot(row) for row in new_items]),
+                    old_grand_total,
+                    agg["grand_total"],
                     current_user["id"],
                 ),
             )
@@ -306,21 +359,17 @@ def set_pricing(
             message=(
                 f"{current_user['name']} changed pricing on the already-approved "
                 f"quotation for {lead['company_name']} "
-                f"(grand total {old_grand_total} -> {totals['grand_total']})."
+                f"(grand total {old_grand_total} -> {agg['grand_total']})."
             ),
         )
 
     return {
         "success": True,
-        "unit_price": body.unit_price,
-        "gst_percent": body.gst_percent,
-        "discount_type": body.discount_type,
-        "discount_percent": body.discount_percent,
-        "discount_amount": body.discount_amount,
-        "special_discount_percent": body.special_discount_percent,
-        "special_discount_amount": body.special_discount_amount,
+        "items": [
+            {"item_id": item_body.item_id, **totals} for item_body, _, totals in item_totals
+        ],
         "price_change_recorded": was_approved,
-        **totals,
+        **agg,
     }
 
 
@@ -407,7 +456,7 @@ def submit_for_approval(
     conn = get_conn()
     lead = _get_quotation_or_404(conn, quotation_id)
 
-    if lead["unit_price"] is None or lead["subtotal"] is None:
+    if lead["grand_total"] is None:
         raise HTTPException(
             status_code=400,
             detail="Set pricing before submitting this quotation for approval.",
@@ -533,8 +582,10 @@ def send_quotation(
             detail="Quotation must be approved before it can be sent.",
         )
 
+    items = queries.get_quotation_items(conn, quotation_id)
+
     quote_no = f"AD-{lead['created_at'][:4]}-{str(lead['id']).zfill(4)}"
-    pdf_bytes = generate_quotation_pdf(lead).getvalue()
+    pdf_bytes = generate_quotation_pdf(lead, items).getvalue()
     pdf_filename = f"{quote_no}.pdf"
 
     email_sent = (
@@ -555,19 +606,13 @@ def send_quotation(
     whatsapp_wamid = None
 
     if whatsapp_session is not None:
-        gst_rate = lead["gst_percent"] if lead["gst_percent"] is not None else 18.0
-        subtotal = lead["subtotal"]
-        grand_total = (
-            round(subtotal * (1 + gst_rate / 100), 2) if subtotal is not None else None
-        )
-
         whatsapp_wamid = send_quotation_whatsapp(
             phone=lead["phone"],
             pdf_bytes=pdf_bytes,
             pdf_filename=pdf_filename,
             quote_no=quote_no,
             contact_person=lead["contact_person"],
-            grand_total=grand_total,
+            grand_total=lead["grand_total"],
         )
 
         if whatsapp_wamid:
@@ -659,7 +704,12 @@ def list_pending_approval(
         """
     ).fetchall()
 
-    return [dict(row) for row in rows]
+    items_map = queries.get_quotation_items_map(conn, [row["id"] for row in rows])
+
+    return [
+        {**dict(row), "items": [dict(i) for i in items_map.get(row["id"], [])]}
+        for row in rows
+    ]
 
 
 # -------------------------------
@@ -695,7 +745,12 @@ def get_all_quotations(
         params,
     ).fetchall()
 
-    return [dict(row) for row in rows]
+    items_map = queries.get_quotation_items_map(conn, [row["id"] for row in rows])
+
+    return [
+        {**dict(row), "items": [dict(i) for i in items_map.get(row["id"], [])]}
+        for row in rows
+    ]
 
 
 # -------------------------------

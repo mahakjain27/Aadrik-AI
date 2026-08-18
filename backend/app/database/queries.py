@@ -396,6 +396,39 @@ def update_quotation_whatsapp_status(wamid: str, status: str) -> None:
         conn.commit()
 
 
+def get_quotation_items(conn: sqlite3.Connection, quotation_id: int) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM quotation_items WHERE quotation_id = ? ORDER BY sort_order, id",
+        (quotation_id,),
+    ).fetchall()
+
+
+def get_quotation_items_map(
+    conn: sqlite3.Connection, quotation_ids: list[int]
+) -> dict[int, list[sqlite3.Row]]:
+    """Batch version of get_quotation_items for a list view - one query
+    instead of one per quotation."""
+
+    if not quotation_ids:
+        return {}
+
+    placeholders = ",".join("?" for _ in quotation_ids)
+    rows = conn.execute(
+        f"""
+        SELECT * FROM quotation_items
+        WHERE quotation_id IN ({placeholders})
+        ORDER BY quotation_id, sort_order, id
+        """,
+        quotation_ids,
+    ).fetchall()
+
+    items_map: dict[int, list[sqlite3.Row]] = {}
+    for row in rows:
+        items_map.setdefault(row["quotation_id"], []).append(row)
+
+    return items_map
+
+
 def list_messages(session_id: str) -> list[sqlite3.Row]:
     conn = get_conn()
     return conn.execute(

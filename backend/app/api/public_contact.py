@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.api.quotation import _insert_quotation
 from app.core.rate_limit import is_rate_limited, record_attempt
-from app.models.quotation import QuotationRequest
+from app.models.quotation import QuotationItemRequest, QuotationRequest
 from app.schemas.contact import PublicContactRequest, PublicContactResponse
 from app.services.activity_log import log_activity
 from app.services.contact_notifications import send_contact_form_confirmation
@@ -48,10 +48,14 @@ def submit_contact_form(request: PublicContactRequest):
         contact_person=request.name,
         phone=request.phone,
         email=None,
-        product_name=request.requirement or "General enquiry (see notes)",
-        brand=None,
-        size=None,
-        quantity="Not specified",
+        items=[
+            QuotationItemRequest(
+                product_name=request.requirement or "General enquiry (see notes)",
+                brand=None,
+                size=None,
+                quantity="Not specified",
+            )
+        ],
         delivery_city="Not specified",
         pincode=None,
         gst_number=None,

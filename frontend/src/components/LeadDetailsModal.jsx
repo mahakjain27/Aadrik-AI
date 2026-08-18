@@ -48,13 +48,7 @@ export default function LeadDetailsModal({
   const canApprove = user?.role === "admin" || user?.role === "manager";
 
   const [local, setLocal] = useState(lead);
-  const [unitPrice, setUnitPrice] = useState("");
-  const [gstPercent, setGstPercent] = useState("18");
-  const [discountType, setDiscountType] = useState("percent");
-  const [discountPercent, setDiscountPercent] = useState("0");
-  const [discountAmount, setDiscountAmount] = useState("0");
-  const [specialDiscountPercent, setSpecialDiscountPercent] = useState("0");
-  const [specialDiscountAmount, setSpecialDiscountAmount] = useState("0");
+  const [itemPricing, setItemPricing] = useState([]);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -67,25 +61,51 @@ export default function LeadDetailsModal({
 
   useEffect(() => {
     setLocal(lead);
-    setUnitPrice(lead?.unit_price != null ? String(lead.unit_price) : "");
-    setGstPercent(lead?.gst_percent != null ? String(lead.gst_percent) : "18");
-    setDiscountType(lead?.discount_type || "percent");
-    setDiscountPercent(
-      lead?.discount_percent != null ? String(lead.discount_percent) : "0"
+
+    const items = lead?.items?.length
+      ? lead.items
+      : lead
+      ? [
+          {
+            id: "legacy",
+            product_name: lead.product_name,
+            brand: lead.brand,
+            size: lead.size,
+            quantity: lead.quantity,
+            unit_price: lead.unit_price,
+            gst_percent: lead.gst_percent,
+            discount_type: lead.discount_type,
+            discount_percent: lead.discount_percent,
+            discount_amount: lead.discount_amount,
+            special_discount_percent: lead.special_discount_percent,
+            special_discount_amount: lead.special_discount_amount,
+            subtotal: lead.subtotal,
+            grand_total: lead.grand_total,
+          },
+        ]
+      : [];
+
+    setItemPricing(
+      items.map((item) => ({
+        itemId: item.id,
+        productName: item.product_name,
+        brand: item.brand,
+        size: item.size,
+        quantity: item.quantity,
+        unitPrice: item.unit_price != null ? String(item.unit_price) : "",
+        gstPercent: item.gst_percent != null ? String(item.gst_percent) : "18",
+        discountType: item.discount_type || "percent",
+        discountPercent: item.discount_percent != null ? String(item.discount_percent) : "0",
+        discountAmount: item.discount_amount != null ? String(item.discount_amount) : "0",
+        specialDiscountPercent:
+          item.special_discount_percent != null ? String(item.special_discount_percent) : "0",
+        specialDiscountAmount:
+          item.special_discount_amount != null ? String(item.special_discount_amount) : "0",
+        subtotal: item.subtotal,
+        grandTotal: item.grand_total,
+      }))
     );
-    setDiscountAmount(
-      lead?.discount_amount != null ? String(lead.discount_amount) : "0"
-    );
-    setSpecialDiscountPercent(
-      lead?.special_discount_percent != null
-        ? String(lead.special_discount_percent)
-        : "0"
-    );
-    setSpecialDiscountAmount(
-      lead?.special_discount_amount != null
-        ? String(lead.special_discount_amount)
-        : "0"
-    );
+
     setRejectReason("");
     setShowRejectForm(false);
     setError(null);
@@ -120,16 +140,33 @@ export default function LeadDetailsModal({
     }
   }
 
+  function updateItemPricing(index, patch) {
+    setItemPricing((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+  }
+
   function currentPricingPayload() {
-    return {
-      unitPrice: Number(unitPrice),
-      gstPercent: Number(gstPercent),
-      discountType,
-      discountPercent: Number(discountPercent) || 0,
-      discountAmount: Number(discountAmount) || 0,
-      specialDiscountPercent: Number(specialDiscountPercent) || 0,
-      specialDiscountAmount: Number(specialDiscountAmount) || 0,
-    };
+    return itemPricing.map((item) => ({
+      itemId: item.itemId,
+      unitPrice: Number(item.unitPrice),
+      gstPercent: Number(item.gstPercent),
+      discountType: item.discountType,
+      discountPercent: Number(item.discountPercent) || 0,
+      discountAmount: Number(item.discountAmount) || 0,
+      specialDiscountPercent: Number(item.specialDiscountPercent) || 0,
+      specialDiscountAmount: Number(item.specialDiscountAmount) || 0,
+    }));
+  }
+
+  function applyPricingResult(result) {
+    setLocal((prev) => ({ ...prev, subtotal: result.subtotal, grand_total: result.grand_total }));
+    setItemPricing((prev) =>
+      prev.map((item) => {
+        const updated = result.items.find((r) => r.item_id === item.itemId);
+        return updated
+          ? { ...item, subtotal: updated.subtotal, grandTotal: updated.grand_total }
+          : item;
+      })
+    );
   }
 
   // Editing an already-approved quotation's price is allowed, but it's a
@@ -150,7 +187,7 @@ export default function LeadDetailsModal({
     );
 
     if (result) {
-      setLocal((prev) => ({ ...prev, ...result }));
+      applyPricingResult(result);
 
       if (result.price_change_recorded) {
         getQuotationPriceHistory(local.id)
@@ -163,8 +200,8 @@ export default function LeadDetailsModal({
   }
 
   async function submitForApproval() {
-    if (!unitPrice) {
-      setError("Enter a unit price first.");
+    if (itemPricing.some((item) => !item.unitPrice)) {
+      setError("Enter a unit price for every product first.");
       return;
     }
 
@@ -177,7 +214,7 @@ export default function LeadDetailsModal({
 
     if (!pricingResult) return;
 
-    setLocal((prev) => ({ ...prev, ...pricingResult }));
+    applyPricingResult(pricingResult);
 
     const result = await runAction(() => submitQuotationForApproval(local.id));
 
@@ -261,55 +298,6 @@ export default function LeadDetailsModal({
     }
   }
 
-  const quantityNumber = (() => {
-    const match = String(local.quantity || "").match(/[\d.]+/);
-    return match ? Number(match[0]) : null;
-  })();
-
-  const localDiscountType = local.discount_type || "percent";
-
-  const originalAmount =
-    local.unit_price != null && quantityNumber != null
-      ? Math.round(local.unit_price * quantityNumber * 100) / 100
-      : null;
-
-  const normalDiscountAmount =
-    originalAmount != null
-      ? localDiscountType === "amount"
-        ? Math.min(Math.max(local.discount_amount || 0, 0), originalAmount)
-        : Math.round(((originalAmount * (local.discount_percent || 0)) / 100) * 100) / 100
-      : null;
-
-  const subtotalAfterNormalDiscount =
-    originalAmount != null && normalDiscountAmount != null
-      ? Math.round((originalAmount - normalDiscountAmount) * 100) / 100
-      : null;
-
-  const specialDiscountPercentAmount =
-    subtotalAfterNormalDiscount != null
-      ? Math.round(
-          ((subtotalAfterNormalDiscount * (local.special_discount_percent || 0)) / 100) * 100
-        ) / 100
-      : null;
-
-  const specialDiscountFlatAmount =
-    subtotalAfterNormalDiscount != null && specialDiscountPercentAmount != null
-      ? Math.min(
-          Math.max(local.special_discount_amount || 0, 0),
-          Math.max(subtotalAfterNormalDiscount - specialDiscountPercentAmount, 0)
-        )
-      : null;
-
-  const gstAmount =
-    local.subtotal != null && local.gst_percent != null
-      ? Math.round(((local.subtotal * local.gst_percent) / 100) * 100) / 100
-      : null;
-
-  const grandTotal =
-    local.subtotal != null && gstAmount != null
-      ? Math.round((local.subtotal + gstAmount) * 100) / 100
-      : null;
-
   const approvalStatus = local.approval_status || "Draft";
   const canSubmitForApproval =
     approvalStatus === "Draft" || approvalStatus === "Rejected";
@@ -391,23 +379,21 @@ export default function LeadDetailsModal({
             </tr>
 
             <tr>
-              <th>Product</th>
-              <td>{local.product_name}</td>
-            </tr>
-
-            <tr>
-              <th>Brand</th>
-              <td>{local.brand}</td>
-            </tr>
-
-            <tr>
-              <th>Size</th>
-              <td>{local.size}</td>
-            </tr>
-
-            <tr>
-              <th>Quantity</th>
-              <td>{local.quantity}</td>
+              <th>Products</th>
+              <td>
+                <Table size="sm" borderless className="mb-0">
+                  <tbody>
+                    {itemPricing.map((item) => (
+                      <tr key={item.itemId}>
+                        <td className="ps-0">{item.productName}</td>
+                        <td className="text-muted">{item.brand || "-"}</td>
+                        <td className="text-muted">{item.size || "-"}</td>
+                        <td className="text-end text-muted">{item.quantity}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </td>
             </tr>
 
             <tr>
@@ -603,110 +589,126 @@ export default function LeadDetailsModal({
         )}
 
         <Form className="mb-3">
-          <div className="row g-2 align-items-end mb-2">
-            <Form.Group className="col-sm-3">
-              <Form.Label className="small mb-1">Unit Price (Rs.)</Form.Label>
-              <Form.Control
-                type="number"
-                min="0"
-                step="0.01"
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
-              />
-            </Form.Group>
+          {itemPricing.map((item, index) => (
+            <div key={item.itemId} className="border rounded p-2 mb-2">
+              <div className="fw-semibold small mb-2">
+                {item.productName}
+                {item.size ? ` (${item.size})` : ""} — Qty {item.quantity}
+              </div>
 
-            <Form.Group className="col-sm-2">
-              <Form.Label className="small mb-1">GST %</Form.Label>
-              <Form.Control
-                type="number"
-                min="0"
-                step="0.01"
-                value={gstPercent}
-                onChange={(e) => setGstPercent(e.target.value)}
-              />
-            </Form.Group>
-          </div>
+              <div className="row g-2 align-items-end mb-2">
+                <Form.Group className="col-sm-3">
+                  <Form.Label className="small mb-1">Unit Price (Rs.)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.unitPrice}
+                    onChange={(e) => updateItemPricing(index, { unitPrice: e.target.value })}
+                  />
+                </Form.Group>
 
-          <div className="mb-2">
-            <Form.Label className="small mb-1 fw-semibold d-block">
-              Normal Discount
-            </Form.Label>
-            <div className="d-flex align-items-center gap-3 flex-wrap">
-              <Form.Check
-                inline
-                type="radio"
-                id="discount-type-percent"
-                name="discountType"
-                label="Percentage"
-                checked={discountType === "percent"}
-                onChange={() => setDiscountType("percent")}
-              />
-              <Form.Check
-                inline
-                type="radio"
-                id="discount-type-amount"
-                name="discountType"
-                label="Amount (Rs.)"
-                checked={discountType === "amount"}
-                onChange={() => setDiscountType("amount")}
-              />
-              {discountType === "percent" ? (
-                <Form.Control
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  style={{ maxWidth: 140 }}
-                  value={discountPercent}
-                  onChange={(e) => setDiscountPercent(e.target.value)}
-                />
-              ) : (
-                <Form.Control
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  style={{ maxWidth: 160 }}
-                  value={discountAmount}
-                  onChange={(e) => setDiscountAmount(e.target.value)}
-                />
+                <Form.Group className="col-sm-2">
+                  <Form.Label className="small mb-1">GST %</Form.Label>
+                  <Form.Control
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.gstPercent}
+                    onChange={(e) => updateItemPricing(index, { gstPercent: e.target.value })}
+                  />
+                </Form.Group>
+              </div>
+
+              <div className="mb-2">
+                <Form.Label className="small mb-1 fw-semibold d-block">
+                  Normal Discount
+                </Form.Label>
+                <div className="d-flex align-items-center gap-3 flex-wrap">
+                  <Form.Check
+                    inline
+                    type="radio"
+                    id={`discount-type-percent-${item.itemId}`}
+                    name={`discountType-${item.itemId}`}
+                    label="Percentage"
+                    checked={item.discountType === "percent"}
+                    onChange={() => updateItemPricing(index, { discountType: "percent" })}
+                  />
+                  <Form.Check
+                    inline
+                    type="radio"
+                    id={`discount-type-amount-${item.itemId}`}
+                    name={`discountType-${item.itemId}`}
+                    label="Amount (Rs.)"
+                    checked={item.discountType === "amount"}
+                    onChange={() => updateItemPricing(index, { discountType: "amount" })}
+                  />
+                  {item.discountType === "percent" ? (
+                    <Form.Control
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      style={{ maxWidth: 140 }}
+                      value={item.discountPercent}
+                      onChange={(e) => updateItemPricing(index, { discountPercent: e.target.value })}
+                    />
+                  ) : (
+                    <Form.Control
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      style={{ maxWidth: 160 }}
+                      value={item.discountAmount}
+                      onChange={(e) => updateItemPricing(index, { discountAmount: e.target.value })}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="row g-2">
+                <Form.Group className="col-sm-3">
+                  <Form.Label className="small mb-1 text-muted">Special Discount %</Form.Label>
+                  <Form.Control
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={item.specialDiscountPercent}
+                    onChange={(e) =>
+                      updateItemPricing(index, { specialDiscountPercent: e.target.value })
+                    }
+                  />
+                </Form.Group>
+                <Form.Group className="col-sm-3">
+                  <Form.Label className="small mb-1 text-muted">
+                    Special Discount (Rs.)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.specialDiscountAmount}
+                    onChange={(e) =>
+                      updateItemPricing(index, { specialDiscountAmount: e.target.value })
+                    }
+                  />
+                </Form.Group>
+              </div>
+
+              {item.grandTotal != null && (
+                <div className="text-end small text-muted mt-1">
+                  Line total: Rs. {item.grandTotal.toFixed(2)}
+                </div>
               )}
             </div>
-          </div>
-
-          <div className="mb-3">
-            <Form.Label className="small mb-1 fw-semibold d-block">
-              Special Discount
-            </Form.Label>
-            <div className="row g-2">
-              <Form.Group className="col-sm-3">
-                <Form.Label className="small mb-1 text-muted">Percent</Form.Label>
-                <Form.Control
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={specialDiscountPercent}
-                  onChange={(e) => setSpecialDiscountPercent(e.target.value)}
-                />
-              </Form.Group>
-              <Form.Group className="col-sm-3">
-                <Form.Label className="small mb-1 text-muted">Amount (Rs.)</Form.Label>
-                <Form.Control
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={specialDiscountAmount}
-                  onChange={(e) => setSpecialDiscountAmount(e.target.value)}
-                />
-              </Form.Group>
-            </div>
-          </div>
+          ))}
 
           <div className="d-flex gap-2">
             <Button
               size="sm"
               variant="outline-primary"
-              disabled={busy || !unitPrice}
+              disabled={busy || itemPricing.some((item) => !item.unitPrice)}
               onClick={handleSavePricing}
             >
               Save Pricing
@@ -716,7 +718,7 @@ export default function LeadDetailsModal({
               <Button
                 size="sm"
                 variant="primary"
-                disabled={busy || !unitPrice}
+                disabled={busy || itemPricing.some((item) => !item.unitPrice)}
                 onClick={handleSubmitForApproval}
               >
                 Submit for Approval
@@ -725,62 +727,22 @@ export default function LeadDetailsModal({
           </div>
         </Form>
 
-        {local.subtotal != null && (
+        {local.grand_total != null && (
           <Table size="sm" borderless className="mb-3" style={{ maxWidth: 340 }}>
             <tbody>
-              {originalAmount != null && normalDiscountAmount > 0 ? (
-                <>
-                  <tr>
-                    <td>Original Price</td>
-                    <td className="text-end">Rs. {originalAmount.toFixed(2)}</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      Normal Discount
-                      {localDiscountType === "percent"
-                        ? ` (${local.discount_percent}%)`
-                        : " (Flat)"}
-                    </td>
-                    <td className="text-end text-danger">
-                      - Rs. {normalDiscountAmount.toFixed(2)}
-                    </td>
-                  </tr>
-                </>
-              ) : null}
-
-              {specialDiscountPercentAmount > 0 && (
-                <tr>
-                  <td>Special Discount ({local.special_discount_percent}%)</td>
-                  <td className="text-end text-danger">
-                    - Rs. {specialDiscountPercentAmount.toFixed(2)}
-                  </td>
-                </tr>
-              )}
-
-              {specialDiscountFlatAmount > 0 && (
-                <tr>
-                  <td>Special Discount (Flat)</td>
-                  <td className="text-end text-danger">
-                    - Rs. {specialDiscountFlatAmount.toFixed(2)}
-                  </td>
-                </tr>
-              )}
-
               <tr>
                 <td>Subtotal</td>
                 <td className="text-end">Rs. {local.subtotal.toFixed(2)}</td>
               </tr>
               <tr>
-                <td>GST ({local.gst_percent}%)</td>
+                <td>GST</td>
                 <td className="text-end">
-                  {gstAmount != null ? `Rs. ${gstAmount.toFixed(2)}` : "-"}
+                  Rs. {(local.grand_total - local.subtotal).toFixed(2)}
                 </td>
               </tr>
               <tr className="fw-bold">
                 <td>Grand Total</td>
-                <td className="text-end">
-                  {grandTotal != null ? `Rs. ${grandTotal.toFixed(2)}` : "-"}
-                </td>
+                <td className="text-end">Rs. {local.grand_total.toFixed(2)}</td>
               </tr>
             </tbody>
           </Table>

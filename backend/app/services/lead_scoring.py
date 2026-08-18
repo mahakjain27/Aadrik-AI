@@ -83,6 +83,16 @@ def _priority_from_score(score: int) -> str:
     return "Low"
 
 
+def _lead_items(lead: dict) -> list[dict]:
+    """A lead's product lines - the real quotation_items if attached, or a
+    single synthetic item wrapping the legacy scalar fields as a fallback
+    for any caller that hasn't attached `items` yet."""
+
+    return lead.get("items") or [
+        {"product_name": lead.get("product_name"), "quantity": lead.get("quantity")}
+    ]
+
+
 def _build_context(leads: list[dict]) -> dict:
     company_counts: dict[str, int] = {}
     category_max: dict[str, float] = {}
@@ -92,9 +102,10 @@ def _build_context(leads: list[dict]) -> dict:
         if company:
             company_counts[company] = company_counts.get(company, 0) + 1
 
-        key, _label, _unit = categorize_quantity(lead.get("product_name"))
-        qty = _parse_quantity(lead.get("quantity"))
-        category_max[key] = max(category_max.get(key, 1.0), qty)
+        for item in _lead_items(lead):
+            key, _label, _unit = categorize_quantity(item.get("product_name"))
+            qty = _parse_quantity(item.get("quantity"))
+            category_max[key] = max(category_max.get(key, 1.0), qty)
 
     return {"company_counts": company_counts, "category_max": category_max}
 
@@ -105,11 +116,20 @@ def _build_context(leads: list[dict]) -> dict:
 # a signal can compare a lead against the rest of the pipeline.
 
 def _quantity_signal(lead: dict, ctx: dict):
-    key, label, _unit = categorize_quantity(lead.get("product_name"))
-    category_max = ctx["category_max"].get(key) or 1.0
-    bonus = (_parse_quantity(lead.get("quantity")) / category_max) * 15
-    reason = f"large {label}" if bonus >= 10 else None
-    return bonus, reason
+    # A lead with several line items scores on its single largest one - "this
+    # lead contains a large order" - rather than summing bonuses across every
+    # line, which would let many small products outscore one big order.
+    best_bonus, best_label = 0.0, None
+
+    for item in _lead_items(lead):
+        key, label, _unit = categorize_quantity(item.get("product_name"))
+        category_max = ctx["category_max"].get(key) or 1.0
+        bonus = (_parse_quantity(item.get("quantity")) / category_max) * 15
+        if bonus > best_bonus:
+            best_bonus, best_label = bonus, label
+
+    reason = f"large {best_label}" if best_bonus >= 10 else None
+    return best_bonus, reason
 
 
 def _recency_signal(lead: dict, ctx: dict):

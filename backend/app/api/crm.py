@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.database import queries
 from app.database.connection import get_conn, write_lock
 from app.middleware.auth import require_roles
 from app.schemas.lead import AssignLeadRequest
@@ -50,7 +51,14 @@ def get_leads(
         params,
     ).fetchall()
 
-    return annotate_leads([dict(row) for row in rows])
+    items_map = queries.get_quotation_items_map(conn, [row["id"] for row in rows])
+
+    leads = [
+        {**dict(row), "items": [dict(i) for i in items_map.get(row["id"], [])]}
+        for row in rows
+    ]
+
+    return annotate_leads(leads)
 
 
 @router.get("/assignees")

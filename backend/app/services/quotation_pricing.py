@@ -66,3 +66,23 @@ def compute_quotation_totals(
         "gst_amount": gst_amount,
         "grand_total": grand_total,
     }
+
+
+def aggregate_quotation_totals(item_totals: list[dict]) -> dict:
+    """Sums a list of per-item compute_quotation_totals() results into
+    quotation-level totals, for a multi-line-item quotation's display/PDF/
+    WhatsApp-caption grand total. Each line is priced independently (its
+    own discount/GST) via compute_quotation_totals - this just adds up the
+    results, it doesn't reapply any pricing logic itself."""
+
+    keys = [
+        "original_subtotal",
+        "normal_discount_amount",
+        "subtotal_after_normal_discount",
+        "special_discount_percent_amount",
+        "special_discount_flat_amount",
+        "subtotal",
+        "gst_amount",
+        "grand_total",
+    ]
+    return {key: round(sum(t[key] for t in item_totals), 2) for key in keys}

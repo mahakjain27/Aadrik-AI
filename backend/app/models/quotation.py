@@ -1,6 +1,13 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class QuotationItemRequest(BaseModel):
+    product_name: str
+    brand: Optional[str] = None
+    size: Optional[str] = None
+    quantity: str
 
 
 class QuotationRequest(BaseModel):
@@ -9,11 +16,7 @@ class QuotationRequest(BaseModel):
     phone: str
     email: Optional[str] = None
 
-    product_name: str
-    brand: Optional[str] = None
-    size: Optional[str] = None
-
-    quantity: str
+    items: list[QuotationItemRequest] = Field(min_length=1)
 
     delivery_city: str
     pincode: Optional[str] = None
@@ -28,7 +31,8 @@ class QuotationResponse(BaseModel):
     message: str
 
 
-class QuotationPricingRequest(BaseModel):
+class QuotationItemPricingRequest(BaseModel):
+    item_id: int
     unit_price: float
     gst_percent: float = 18.0
 
@@ -42,6 +46,12 @@ class QuotationPricingRequest(BaseModel):
     # on top of the normal discount.
     special_discount_percent: float = 0.0
     special_discount_amount: float = 0.0
+
+
+class QuotationPricingRequest(BaseModel):
+    # Every existing item on the quotation must be included in one call -
+    # pricing is saved atomically, not per line item.
+    items: list[QuotationItemPricingRequest] = Field(min_length=1)
 
 
 class QuotationRejectRequest(BaseModel):

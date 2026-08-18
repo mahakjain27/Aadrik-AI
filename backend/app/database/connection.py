@@ -91,6 +91,38 @@ CREATE TABLE IF NOT EXISTS quotation_price_history (
 CREATE INDEX IF NOT EXISTS idx_quotation_price_history_quotation_id
 ON quotation_price_history(quotation_id);
 
+-- One row per product line on a quotation. A quotation always has >= 1
+-- item; quotations.product_name/brand/size/quantity mirror the first item
+-- (and unit_price/gst_percent/discount fields stop being written) once a
+-- quotation has items - see _migrate_backfill_quotation_items.
+CREATE TABLE IF NOT EXISTS quotation_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    quotation_id INTEGER NOT NULL REFERENCES quotations(id) ON DELETE CASCADE,
+
+    product_name TEXT NOT NULL,
+    brand TEXT,
+    size TEXT,
+    quantity TEXT,
+
+    unit_price REAL,
+    gst_percent REAL,
+    discount_type TEXT NOT NULL DEFAULT 'percent',
+    discount_percent REAL NOT NULL DEFAULT 0,
+    discount_amount REAL NOT NULL DEFAULT 0,
+    special_discount_percent REAL NOT NULL DEFAULT 0,
+    special_discount_amount REAL NOT NULL DEFAULT 0,
+
+    subtotal REAL,
+    grand_total REAL,
+
+    sort_order INTEGER NOT NULL DEFAULT 0,
+
+    created_at TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_quotation_items_quotation_id
+ON quotation_items(quotation_id);
+
 CREATE INDEX IF NOT EXISTS idx_sessions_user_updated
     ON sessions (user_id, updated_at DESC);
 
@@ -442,6 +474,12 @@ def _migrate_quotations_columns() -> None:
 
         "is_archived":
             "ALTER TABLE quotations ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0",
+
+        "grand_total":
+            "ALTER TABLE quotations ADD COLUMN grand_total REAL",
+
+        "items_summary":
+            "ALTER TABLE quotations ADD COLUMN items_summary TEXT",
     }
 
     with write_lock:
@@ -458,6 +496,105 @@ def _migrate_quotations_columns() -> None:
             "CREATE INDEX IF NOT EXISTS idx_quotations_customer_id "
             "ON quotations(customer_id)"
         )
+
+        _conn.commit()
+
+
+def _migrate_quotation_price_history_columns() -> None:
+    """Adds JSON-snapshot columns used for multi-item price-change audit
+    entries going forward. Historical rows (written before line items
+    existed) keep using the old per-field old_X/new_X columns untouched -
+    these new columns stay NULL on them."""
+
+    columns = {
+        row["name"]
+        for row in _conn.execute(
+            "PRAGMA table_info(quotation_price_history)"
+        ).fetchall()
+    }
+
+    missing = {
+        "old_items_json":
+            "ALTER TABLE quotation_price_history ADD COLUMN old_items_json TEXT",
+
+        "new_items_json":
+            "ALTER TABLE quotation_price_history ADD COLUMN new_items_json TEXT",
+    }
+
+    with write_lock:
+        for name, sql in missing.items():
+            if name not in columns:
+                _conn.execute(sql)
+
+        _conn.commit()
+
+
+def _migrate_backfill_quotation_items() -> None:
+    """One-time backfill: every pre-existing quotations row becomes exactly
+    one quotation_items row carrying its legacy singular product+pricing
+    fields, and quotations.grand_total/items_summary get computed from it.
+    Idempotent - only touches quotations that have zero item rows yet, so
+    this is a fast no-op once the backfill has run."""
+
+    orphans = _conn.execute(
+        """
+        SELECT quotations.*
+        FROM quotations
+        LEFT JOIN quotation_items ON quotation_items.quotation_id = quotations.id
+        WHERE quotation_items.id IS NULL
+        """
+    ).fetchall()
+
+    if not orphans:
+        return
+
+    from app.services.lead_scoring import _parse_quantity
+    from app.services.quotation_pricing import compute_quotation_totals
+
+    with write_lock:
+        for q in orphans:
+            _conn.execute(
+                """
+                INSERT INTO quotation_items
+                (quotation_id, product_name, brand, size, quantity,
+                 unit_price, gst_percent, discount_type, discount_percent,
+                 discount_amount, special_discount_percent, special_discount_amount,
+                 subtotal, sort_order)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                """,
+                (
+                    q["id"], q["product_name"], q["brand"], q["size"], q["quantity"],
+                    q["unit_price"], q["gst_percent"], q["discount_type"] or "percent",
+                    q["discount_percent"] or 0, q["discount_amount"] or 0,
+                    q["special_discount_percent"] or 0, q["special_discount_amount"] or 0,
+                    q["subtotal"],
+                ),
+            )
+
+            grand_total = None
+            if q["unit_price"] is not None:
+                qty = _parse_quantity(q["quantity"])
+                if qty:
+                    totals = compute_quotation_totals(
+                        unit_price=q["unit_price"], quantity=qty,
+                        gst_percent=q["gst_percent"] or 18,
+                        discount_type=q["discount_type"] or "percent",
+                        discount_percent=q["discount_percent"] or 0,
+                        discount_amount=q["discount_amount"] or 0,
+                        special_discount_percent=q["special_discount_percent"] or 0,
+                        special_discount_amount=q["special_discount_amount"] or 0,
+                    )
+                    grand_total = totals["grand_total"]
+                    _conn.execute(
+                        "UPDATE quotation_items SET grand_total = ? "
+                        "WHERE quotation_id = ? AND sort_order = 0",
+                        (grand_total, q["id"]),
+                    )
+
+            _conn.execute(
+                "UPDATE quotations SET grand_total = ?, items_summary = ? WHERE id = ?",
+                (grand_total, q["product_name"], q["id"]),
+            )
 
         _conn.commit()
 
@@ -690,6 +827,8 @@ def init_db() -> None:
     _migrate_backfill_customers()
     _migrate_backfill_won_approval_status()
     _migrate_seed_products()
+    _migrate_quotation_price_history_columns()
+    _migrate_backfill_quotation_items()
 
 def _migrate_messages_role() -> None:
     row = _conn.execute(

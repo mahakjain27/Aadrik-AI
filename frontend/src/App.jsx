@@ -89,10 +89,7 @@ function App() {
       contact_person: formData.contact_person,
       phone: formData.phone,
       email: formData.email,
-      product_name: formData.product_name,
-      brand: formData.brand,
-      size: formData.size,
-      quantity: formData.quantity,
+      items: formData.items,
       delivery_city: formData.city,
       pincode: formData.pincode,
       gst_number: formData.gst_number,
@@ -145,6 +142,7 @@ function App() {
         onClose={() => setShowQuotation(false)}
         product={selectedProduct}
         selectedVariant={selectedVariant}
+        catalog={catalog}
         onSubmit={handleQuotationSubmit}
       />
 

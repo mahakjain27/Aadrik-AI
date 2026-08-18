@@ -212,7 +212,7 @@ function CustomerDetailsModal({ customerId, assignees, onClose, onSaved }) {
                   {customer.quotations.map((q) => (
                     <tr key={q.id}>
                       <td>{quoteNumber(q)}</td>
-                      <td>{q.product_name}</td>
+                      <td>{q.items_summary || q.product_name}</td>
                       <td>{q.status}</td>
                       <td>{new Date(q.created_at).toLocaleDateString()}</td>
                     </tr>
