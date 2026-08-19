@@ -639,7 +639,7 @@ export default function LeadDetailsModal({
                     type="radio"
                     id={`discount-type-amount-${item.itemId}`}
                     name={`discountType-${item.itemId}`}
-                    label="Amount (Rs.)"
+                    label="Amount (Rs. / unit)"
                     checked={item.discountType === "amount"}
                     onChange={() => updateItemPricing(index, { discountType: "amount" })}
                   />
@@ -682,7 +682,7 @@ export default function LeadDetailsModal({
                 </Form.Group>
                 <Form.Group className="col-sm-3">
                   <Form.Label className="small mb-1 text-muted">
-                    Special Discount (Rs.)
+                    Special Discount (Rs. / unit)
                   </Form.Label>
                   <Form.Control
                     type="number"

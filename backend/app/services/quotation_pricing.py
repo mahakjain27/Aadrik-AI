@@ -13,15 +13,18 @@ def compute_quotation_totals(
     the PDF generator, and anything else that needs a total all call this
     instead of recomputing it themselves, so they can never disagree.
 
-    Order: unit price x quantity -> normal discount (a % OR a flat Rs,
-    never both - discount_type picks which) -> special discount (a % AND
-    a flat Rs, both apply) -> GST on what's left -> grand total."""
+    Order: unit price x quantity -> normal discount (a % OR a flat Rs PER
+    UNIT, never both - discount_type picks which) -> special discount (a
+    % AND a flat Rs PER UNIT, both apply) -> GST on what's left -> grand
+    total. The flat-Rs discount fields are per unit (multiplied by
+    quantity here), not a flat amount off the whole line - a Rs 400
+    discount on a qty-4 line deducts 1600, not 400."""
 
     original_subtotal = round(unit_price * quantity, 2)
 
     if discount_type == "amount":
         normal_discount_amount = round(
-            min(max(discount_amount, 0), original_subtotal), 2
+            min(max(discount_amount, 0) * quantity, original_subtotal), 2
         )
     else:
         normal_discount_amount = round(
@@ -40,7 +43,7 @@ def compute_quotation_totals(
         subtotal_after_normal_discount - special_discount_percent_amount, 0
     )
     special_discount_flat_amount = round(
-        min(max(special_discount_amount, 0), remaining_after_special_percent), 2
+        min(max(special_discount_amount, 0) * quantity, remaining_after_special_percent), 2
     )
 
     subtotal = round(
