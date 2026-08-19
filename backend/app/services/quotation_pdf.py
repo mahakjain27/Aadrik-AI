@@ -308,7 +308,7 @@ def generate_quotation_pdf(lead, items):
     story.append(Spacer(1, 0.15 * inch))
     story.append(section_bar("PRODUCT DETAILS"))
 
-    product_header = ["Description", "Brand", "Size", "Qty", "Unit", "Rate", "Amount"]
+    product_header = ["Description", "Brand", "Size", "Qty", "Rate", "Discount", "Total"]
 
     item_totals = []
     product_rows = []
@@ -331,14 +331,22 @@ def generate_quotation_pdf(lead, items):
         if totals:
             item_totals.append(totals)
 
+        line_discount = (
+            totals["normal_discount_amount"]
+            + totals["special_discount_percent_amount"]
+            + totals["special_discount_flat_amount"]
+            if totals
+            else 0
+        )
+
         product_rows.append(
             [
                 item["product_name"] or "-",
                 item["brand"] or "-",
                 item["size"] or "-",
                 item["quantity"] or "-",
-                "-",
                 f"Rs. {item['unit_price']:.2f}" if item["unit_price"] is not None else "-",
+                f"Rs. {line_discount:.2f}" if totals and line_discount > 0 else "-",
                 f"Rs. {totals['subtotal']:.2f}" if totals else "-",
             ]
         )
@@ -355,10 +363,10 @@ def generate_quotation_pdf(lead, items):
             width * 0.26,
             width * 0.14,
             width * 0.11,
-            width * 0.10,
-            width * 0.10,
+            width * 0.09,
             width * 0.14,
-            width * 0.15,
+            width * 0.13,
+            width * 0.13,
         ],
     )
     product_table.setStyle(
