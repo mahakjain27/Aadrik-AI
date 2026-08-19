@@ -9,6 +9,7 @@ from app.core.logging import setup_logger
 from app.database import queries
 from app.database.queries import update_session_status
 from app.rag.retriever import retrieve
+from app.services.requirement_extraction import handle_requirement_message
 from app.services.session_service import resolve_session
 
 from functools import lru_cache
@@ -111,6 +112,58 @@ def generate_ai_reply(session_id: str, message: str, history: list) -> dict:
     prompt). Shared by the internal AI Chat page and the WhatsApp webhook,
     so channel-specific concerns (session resolution, persisting the
     inbound message with its own metadata) stay with each caller."""
+
+    # ---------------- Product requirement understanding ----------------
+    # Shorthand order messages like "3.15 rasi 3 case 2.5 orbit 2 case"
+    # never appear verbatim in the knowledge base for RAG's similarity
+    # search to retrieve, so they'd otherwise always hit the generic
+    # fallback. This deterministically parses + matches such messages
+    # against the real product catalog before RAG gets involved at all;
+    # it returns None (falls through to RAG below, unchanged) for any
+    # message that isn't a product requirement.
+
+    try:
+        requirement_reply = handle_requirement_message(message, history)
+    except Exception:
+        logger.exception("Requirement extraction failed - falling back to RAG")
+        requirement_reply = None
+
+    if requirement_reply is not None:
+        # A requirement can be mixed with an unrelated knowledge question
+        # ("Need 3 cases Rasi 3.15. Also do you deliver to Bangalore?") -
+        # best-effort answer that half too, but never let it block or
+        # break the requirement reply itself.
+        if "?" in message:
+            try:
+                docs = retrieve(message)
+                company_knowledge = "\n\n".join(doc.page_content for doc in docs)
+                rag_answer = client.chat.completions.create(
+                    model=settings.chat_model,
+                    temperature=0.2,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": SYSTEM_PROMPT_TEMPLATE.format(
+                                company_knowledge=company_knowledge,
+                                quotation_prompt=QUOTATION_PROMPT,
+                            ),
+                        },
+                        {"role": "user", "content": message},
+                    ],
+                ).choices[0].message.content.strip()
+
+                if rag_answer and rag_answer != AI_FALLBACK:
+                    requirement_reply = f"{requirement_reply}\n\n{rag_answer}"
+            except Exception:
+                logger.exception("Mixed-message knowledge-question augmentation failed")
+
+        queries.insert_message(session_id, "assistant", requirement_reply, [])
+        update_session_status(session_id, "AI Handling")
+        queries.touch_session(session_id)
+
+        logger.info(f"AI request completed via product-requirement path | session_id={session_id}")
+
+        return {"reply": requirement_reply, "sources": [], "session_id": session_id}
 
     # ---------------- Retrieval ----------------
 
