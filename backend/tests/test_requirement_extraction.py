@@ -317,6 +317,41 @@ class ConversationFollowUpTests(unittest.TestCase):
         self.assertNotIn("3.15", reply)
         self.assertIn("Orbit E6013", reply)
 
+    def test_same_product_mentioned_with_and_without_size_does_not_duplicate(self):
+        # Regression: "Orbit 3.15 4box" then later "Orbit 4box" (no size)
+        # both resolve to the same real product and must merge into one
+        # noted line, not appear twice.
+        history = [{"role": "user", "content": "Orbit 3.15 4box"}]
+
+        reply = handle_requirement_message("Orbit 4box", history, catalog=CATALOG)
+
+        self.assertEqual(reply.count("Orbit E6013"), 1)
+
+    def test_bare_quantity_answers_pending_clarification(self):
+        # Regression: bot asked "I need the quantity to confirm it" for a
+        # resolved-but-unquantified item; a bare "4" (no brand at all)
+        # must be understood as answering that, not fall through to RAG.
+        history = [{"role": "user", "content": "Can I get orbit 3.15"}]
+
+        reply = handle_requirement_message("4", history, catalog=CATALOG)
+
+        self.assertIsNotNone(reply)
+        self.assertIn("Orbit E6013", reply)
+        self.assertIn("Sure. I've noted your requirement", reply)
+        self.assertNotIn("but I need the quantity", reply)
+
+    def test_bare_quantity_with_unit_answers_pending_clarification(self):
+        history = [{"role": "user", "content": "Can I get orbit 3.15"}]
+
+        reply = handle_requirement_message("4 cases", history, catalog=CATALOG)
+
+        self.assertIn("4 case", reply)
+
+    def test_bare_quantity_with_nothing_pending_is_not_a_requirement(self):
+        # No prior unquantified item to attach this to - a bare "4" out of
+        # the blue genuinely isn't a product requirement.
+        self.assertIsNone(handle_requirement_message("4", [], catalog=CATALOG))
+
     def test_repeated_brand_updates_rather_than_duplicates(self):
         first = resolve_requirement_items("3.15 rasi 3 case", CATALOG)
         corrected = resolve_requirement_items("3.15 rasi 5 case", CATALOG)

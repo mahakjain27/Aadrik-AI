@@ -338,6 +338,13 @@ def resolve_requirement_items(text: str, catalog: dict | None = None) -> list[di
 
 
 def _item_key(item: dict) -> tuple:
+    # Two mentions of the same real product must merge into one line even
+    # if one of them omitted the size (e.g. "Orbit 3.15 4 box" then later
+    # "Orbit 4 box") - both resolve to the same catalog product, so key on
+    # that once it's known. Only unresolved items (no confirmed product
+    # yet) fall back to the raw (brand, size) text.
+    if item.get("status") == "resolved":
+        return ("product", item["product"]["id"])
     return (item["brand_key"], item.get("size"))
 
 
@@ -415,6 +422,27 @@ def format_requirement_reply(items: list[dict]) -> str:
     return "\n\n".join(parts)
 
 
+def _bare_quantity(text: str) -> tuple[float, str | None] | None:
+    """If `text` is JUST a quantity - optionally with a unit, e.g. "4" or
+    "4 cases" - and mentions no brand/other word at all, returns
+    (quantity, unit). Used to understand a customer answering the bot's
+    own "I need the quantity to confirm it" question with nothing but a
+    number, which on its own has no brand for extract_requirement_items
+    to anchor on."""
+
+    tokens = _tokenize(text)
+    numeric = [t for t in tokens if t["kind"] in ("qty_unit", "number")]
+    words = [t for t in tokens if t["kind"] == "word"]
+
+    if len(numeric) != 1 or words:
+        return None
+
+    tok = numeric[0]
+    if tok["kind"] == "qty_unit":
+        return tok["quantity"], tok["unit"]
+    return tok["value"], None
+
+
 def handle_requirement_message(message: str, history: list, catalog: dict | None = None) -> str | None:
     """Entry point called by ai_service.generate_ai_reply before RAG.
     Returns the finished reply text if `message` contains a product
@@ -434,11 +462,6 @@ def handle_requirement_message(message: str, history: list, catalog: dict | None
     catalog = catalog if catalog is not None else get_catalog()
     new_raw = extract_requirement_items(message, catalog)
 
-    if not new_raw:
-        return None
-
-    new_resolved = [match_catalog_item(i, catalog) for i in new_raw]
-
     prior_resolved: list[dict] = []
     for msg in history:
         if msg["role"] != "user":
@@ -450,6 +473,23 @@ def handle_requirement_message(message: str, history: list, catalog: dict | None
                 prior_resolved,
                 [i for i in prior_matched if i["status"] == "resolved"],
             )
+
+    if new_raw:
+        new_resolved = [match_catalog_item(i, catalog) for i in new_raw]
+    else:
+        bare = _bare_quantity(message)
+        if bare is None:
+            return None
+
+        # A bare number only means something if there's an item still
+        # waiting on a quantity - otherwise there's nothing to attach it
+        # to, and this genuinely isn't a product requirement.
+        pending = next((i for i in reversed(prior_resolved) if i.get("quantity") is None), None)
+        if pending is None:
+            return None
+
+        quantity, unit = bare
+        new_resolved = [{**pending, "quantity": quantity, "unit": unit}]
 
     merged = merge_requirement_items(prior_resolved, new_resolved)
 
