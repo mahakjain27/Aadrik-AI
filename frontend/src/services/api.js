@@ -184,8 +184,10 @@ export async function rejectQuotation(id, reason) {
   return response.data;
 }
 
-export async function sendQuotation(id) {
-  const response = await api.post(`/quotation/${id}/send`);
+export async function sendQuotation(id, whatsappPhone) {
+  const response = await api.post(`/quotation/${id}/send`, {
+    whatsapp_phone: whatsappPhone || null,
+  });
   return response.data;
 }
 

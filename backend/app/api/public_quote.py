@@ -211,6 +211,13 @@ let cart = [{
   quantity: '',
 }];
 
+// The WhatsApp number that opened this page via /quote?...&phone=... -
+// kept separate from the editable "Phone Number" field below (which
+// starts pre-filled with this same value, but the customer can change
+// it). Never shown as its own field - just carried through silently so
+// the CRM knows both numbers if they end up different.
+const SOURCE_WHATSAPP_PHONE = __SOURCE_PHONE_JSON__ || null;
+
 let ALL_PRODUCTS = [];
 
 fetch('/public/products')
@@ -320,6 +327,7 @@ async function submitForm() {
     contact_person: document.getElementById('contact_person').value.trim(),
     phone: document.getElementById('phone').value.trim(),
     email: document.getElementById('email').value.trim() || null,
+    source_whatsapp_phone: SOURCE_WHATSAPP_PHONE,
     items: cart.map((line) => ({
       product_name: line.name,
       brand: line.brand,
@@ -375,7 +383,8 @@ def public_quote_form(product: str, phone: str = ""):
         raise HTTPException(status_code=404, detail="Product not found.")
 
     html = (
-        PAGE_TEMPLATE.replace("__PHONE__", phone)
+        PAGE_TEMPLATE.replace("__SOURCE_PHONE_JSON__", json.dumps(phone or None))
+        .replace("__PHONE__", phone)
         .replace("__PRODUCT_ID_JSON__", json.dumps(item["id"]))
         .replace("__PRODUCT_NAME_JSON__", json.dumps(item["name"]))
         .replace("__PRODUCT_BRAND_JSON__", json.dumps(item.get("brand")))

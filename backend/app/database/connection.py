@@ -480,6 +480,15 @@ def _migrate_quotations_columns() -> None:
 
         "items_summary":
             "ALTER TABLE quotations ADD COLUMN items_summary TEXT",
+
+        # The WhatsApp number that originally opened this quotation's
+        # /quote?product=...&phone=... link - distinct from `phone`, which
+        # is whatever the customer typed into the form and may differ.
+        # NULL for quotations with no WhatsApp origin (manual/website) and
+        # for every quotation that existed before this column was added -
+        # never speculatively backfilled from `phone`.
+        "source_whatsapp_phone":
+            "ALTER TABLE quotations ADD COLUMN source_whatsapp_phone TEXT",
     }
 
     with write_lock:

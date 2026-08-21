@@ -13,13 +13,16 @@ from app.models.quotation import (
     QuotationRejectRequest,
     QuotationRequest,
     QuotationResponse,
+    QuotationSendRequest,
 )
 from app.services.activity_log import log_activity
 from app.services.lead_scoring import _parse_quantity
 from app.services.quotation_email import send_quotation_email
 from app.services.quotation_pdf import generate_quotation_pdf
 from app.services.quotation_pricing import aggregate_quotation_totals, compute_quotation_totals
+from app.services.quotation_send import InvalidWhatsappSelection, resolve_whatsapp_destination
 from app.services.quotation_whatsapp import send_quotation_whatsapp
+from app.utils.phone import normalize_indian_phone
 
 APPROVAL_ROLES = ("admin", "sales", "manager")
 
@@ -87,10 +90,11 @@ def _insert_quotation(
                 notes,
                 created_by,
                 source,
+                source_whatsapp_phone,
                 customer_id
             )
             VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 request.company_name,
@@ -108,6 +112,7 @@ def _insert_quotation(
                 request.notes,
                 created_by,
                 source,
+                request.source_whatsapp_phone,
                 customer_id,
             ),
         )
@@ -571,6 +576,7 @@ def reject_quotation(
 @router.post("/{quotation_id}/send")
 def send_quotation(
     quotation_id: int,
+    body: QuotationSendRequest = QuotationSendRequest(),
     current_user=Depends(require_roles(*APPROVAL_ROLES)),
 ):
     conn = get_conn()
@@ -581,6 +587,38 @@ def send_quotation(
             status_code=400,
             detail="Quotation must be approved before it can be sent.",
         )
+
+    def _has_whatsapp_session(phone: str) -> bool:
+        return queries.get_active_session_by_phone(phone, "whatsapp") is not None
+
+    try:
+        destination = resolve_whatsapp_destination(
+            quotation_phone=lead["phone"],
+            source_whatsapp_phone=lead["source_whatsapp_phone"],
+            requested_phone=body.whatsapp_phone,
+            has_session=_has_whatsapp_session,
+        )
+    except InvalidWhatsappSelection as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    # The contact phone and the WhatsApp number that opened this
+    # quotation's /quote link disagree, and more than one of them has a
+    # live conversation to send into - don't guess, ask the salesperson
+    # which one to use before touching anything (including email, so a
+    # retry after the choice can't double-send it).
+    if destination["selection_required"]:
+        return {
+            "success": False,
+            "send_required": True,
+            "number_mismatch": True,
+            "quotation_phone": lead["phone"],
+            "whatsapp_phone": lead["source_whatsapp_phone"],
+            "available_destinations": destination["available_destinations"],
+            "message": (
+                "This quotation was requested through WhatsApp using a different number "
+                "than the one entered in the form. Choose where to send it."
+            ),
+        }
 
     items = queries.get_quotation_items(conn, quotation_id)
 
@@ -599,15 +637,18 @@ def send_quotation(
         else False
     )
 
-    # Only attempt WhatsApp if there's an existing conversation with this
-    # phone - that's both how we know it's a real WhatsApp number and what
-    # keeps us inside Meta's 24h freeform-reply window.
-    whatsapp_session = queries.get_active_session_by_phone(lead["phone"], "whatsapp")
+    # Only attempt WhatsApp if there's an existing conversation with the
+    # resolved destination - that's both how we know it's a real WhatsApp
+    # number and what keeps us inside Meta's 24h freeform-reply window.
+    target_phone = destination["target_phone"]
+    whatsapp_session = (
+        queries.get_active_session_by_phone(target_phone, "whatsapp") if target_phone else None
+    )
     whatsapp_wamid = None
 
     if whatsapp_session is not None:
         whatsapp_wamid = send_quotation_whatsapp(
-            phone=lead["phone"],
+            phone=target_phone,
             pdf_bytes=pdf_bytes,
             pdf_filename=pdf_filename,
             quote_no=quote_no,
@@ -624,6 +665,38 @@ def send_quotation(
             queries.touch_session(whatsapp_session["id"])
 
     whatsapp_sent = whatsapp_wamid is not None
+
+    delivered_via = [
+        label for label, sent in (("email", email_sent), ("WhatsApp", whatsapp_sent)) if sent
+    ]
+
+    # Nothing actually went out - don't claim the quotation was sent. The
+    # frontend/CRM should be able to tell this apart from a real send.
+    if not delivered_via:
+        no_whatsapp_reason = (
+            "No WhatsApp conversation is available for either phone number."
+            if destination["number_mismatch"]
+            else "no WhatsApp conversation to send the document into"
+        )
+
+        log_activity(
+            actor_id=current_user["id"],
+            action="quotation.send_failed",
+            entity_type="quotation",
+            entity_id=quotation_id,
+            message=(
+                f"{current_user['name']} tried to send the quotation for {lead['company_name']}, "
+                f"but nothing was delivered - no email on file, and {no_whatsapp_reason}"
+            ),
+        )
+
+        return {
+            "success": False,
+            "email_sent": False,
+            "whatsapp_sent": False,
+            "sent_via": None,
+            "message": f"Nothing was delivered: no email on file, and {no_whatsapp_reason}",
+        }
 
     sent_via = ",".join(
         label for label, sent in (("email", email_sent), ("whatsapp", whatsapp_sent)) if sent
@@ -650,10 +723,6 @@ def send_quotation(
         )
         conn.commit()
 
-    delivered_via = [
-        label for label, sent in (("email", email_sent), ("WhatsApp", whatsapp_sent)) if sent
-    ]
-
     log_activity(
         actor_id=current_user["id"],
         action="quotation.sent",
@@ -662,19 +731,8 @@ def send_quotation(
         message=(
             f"{current_user['name']} sent the quotation for {lead['company_name']} via "
             f"{' and '.join(delivered_via)}."
-            if delivered_via
-            else f"{current_user['name']} marked the quotation for {lead['company_name']} as sent "
-            "(no delivery channel was available - no email on file and no WhatsApp conversation)."
         ),
     )
-
-    if delivered_via:
-        message = f"Quotation sent via {' and '.join(delivered_via)}."
-    else:
-        message = (
-            "Marked as sent, but nothing was actually delivered: no email on file, and no "
-            "WhatsApp conversation to send the document into."
-        )
 
     return {
         "success": True,
@@ -682,7 +740,7 @@ def send_quotation(
         "whatsapp_sent": whatsapp_sent,
         "sent_via": sent_via or None,
         "whatsapp_delivery_status": "sent" if whatsapp_sent else None,
-        "message": message,
+        "message": f"Quotation sent via {' and '.join(delivered_via)}.",
     }
 
 

@@ -24,6 +24,11 @@ class QuotationRequest(BaseModel):
     gst_number: Optional[str] = None
     notes: Optional[str] = None
 
+    # The WhatsApp number that originally opened this quotation's /quote
+    # link, if any - distinct from `phone`, which is whatever the
+    # customer typed into the form and may not be the same number.
+    source_whatsapp_phone: Optional[str] = None
+
 
 class QuotationResponse(BaseModel):
     success: bool
@@ -59,3 +64,11 @@ class QuotationPricingRequest(BaseModel):
 
 class QuotationRejectRequest(BaseModel):
     reason: str
+
+
+class QuotationSendRequest(BaseModel):
+    # Set only on the follow-up call after the salesperson has resolved a
+    # phone-number-mismatch prompt (see quotation_send.py). Must be one of
+    # the quotation's own phone/source_whatsapp_phone - never an arbitrary
+    # third-party number.
+    whatsapp_phone: Optional[str] = None

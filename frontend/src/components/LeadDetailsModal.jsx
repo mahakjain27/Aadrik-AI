@@ -38,6 +38,17 @@ const WHATSAPP_STATUS_META = {
   failed: { label: "Failed", bg: "#dc3545" },
 };
 
+// Lightweight display-only comparison (last 10 digits, ignoring +91/91/0
+// prefixes) - just decides whether to show the extra WhatsApp row below;
+// the authoritative mismatch decision is computed server-side in
+// quotation_send.py using the real normalize_indian_phone logic.
+function phonesLookDifferent(a, b) {
+  if (!a || !b) return false;
+  const digitsA = a.replace(/\D/g, "").slice(-10);
+  const digitsB = b.replace(/\D/g, "").slice(-10);
+  return digitsA !== digitsB;
+}
+
 export default function LeadDetailsModal({
   show,
   onClose,
@@ -58,6 +69,7 @@ export default function LeadDetailsModal({
   const [showConfirmOrder, setShowConfirmOrder] = useState(false);
   const [priceHistory, setPriceHistory] = useState([]);
   const [pendingApprovedConfirm, setPendingApprovedConfirm] = useState(null);
+  const [pendingSendSelection, setPendingSendSelection] = useState(null);
 
   useEffect(() => {
     setLocal(lead);
@@ -111,6 +123,7 @@ export default function LeadDetailsModal({
     setError(null);
     setActionMessage(null);
     setPendingApprovedConfirm(null);
+    setPendingSendSelection(null);
     setPriceHistory([]);
 
     if (lead?.id && show) {
@@ -268,20 +281,36 @@ export default function LeadDetailsModal({
     }
   }
 
-  async function handleSend() {
-    const result = await runAction(() => sendQuotation(local.id));
+  async function handleSend(whatsappPhone) {
+    setPendingSendSelection(null);
 
-    if (result) {
-      setLocal((prev) => ({
-        ...prev,
-        sent_at: new Date().toISOString(),
-        status: "Quotation Sent",
-        sent_via: result.sent_via,
-        whatsapp_delivery_status: result.whatsapp_delivery_status,
-      }));
-      setActionMessage(result.message);
-      onUpdated?.();
+    const result = await runAction(() => sendQuotation(local.id, whatsappPhone));
+
+    if (!result) return;
+
+    if (result.send_required) {
+      // Quotation phone and WhatsApp source number disagree, and more
+      // than one of them has a live conversation - nothing was sent
+      // yet, ask which number to use.
+      setPendingSendSelection(result);
+      return;
     }
+
+    if (!result.success) {
+      // Nothing was actually delivered - don't claim it as sent.
+      setActionMessage(result.message);
+      return;
+    }
+
+    setLocal((prev) => ({
+      ...prev,
+      sent_at: new Date().toISOString(),
+      status: "Quotation Sent",
+      sent_via: result.sent_via,
+      whatsapp_delivery_status: result.whatsapp_delivery_status,
+    }));
+    setActionMessage(result.message);
+    onUpdated?.();
   }
 
   async function handleOrderConfirmed() {
@@ -367,6 +396,18 @@ export default function LeadDetailsModal({
               <th>Phone</th>
               <td>{local.phone}</td>
             </tr>
+
+            {phonesLookDifferent(local.phone, local.source_whatsapp_phone) && (
+              <tr>
+                <th>WhatsApp</th>
+                <td>
+                  {local.source_whatsapp_phone}{" "}
+                  <span className="text-muted small">
+                    (different from the quotation phone above)
+                  </span>
+                </td>
+              </tr>
+            )}
 
             <tr>
               <th>Email</th>
@@ -832,8 +873,47 @@ export default function LeadDetailsModal({
           </div>
         )}
 
+        {pendingSendSelection && (
+          <Alert variant="warning" className="py-2 mb-2">
+            <div className="fw-semibold mb-1">Different phone numbers detected</div>
+            <div className="small mb-2">
+              This quotation was requested through WhatsApp using one number, but a
+              different number was entered in the quotation form.
+            </div>
+            <div className="small mb-2">
+              <div>
+                Quotation phone: <strong>{pendingSendSelection.quotation_phone}</strong>
+              </div>
+              <div>
+                WhatsApp number: <strong>{pendingSendSelection.whatsapp_phone}</strong>
+              </div>
+            </div>
+            <div className="d-flex gap-2 flex-wrap">
+              {pendingSendSelection.available_destinations.map((phone) => (
+                <Button
+                  key={phone}
+                  size="sm"
+                  variant="success"
+                  disabled={busy}
+                  onClick={() => handleSend(phone)}
+                >
+                  Send to {phone}
+                </Button>
+              ))}
+              <Button
+                size="sm"
+                variant="outline-secondary"
+                disabled={busy}
+                onClick={() => setPendingSendSelection(null)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </Alert>
+        )}
+
         {approvalStatus === "Approved" && (
-          <Button size="sm" variant="success" disabled={busy} onClick={handleSend}>
+          <Button size="sm" variant="success" disabled={busy} onClick={() => handleSend()}>
             {local.sent_at ? "Re-send" : "Send to Customer"}
           </Button>
         )}
